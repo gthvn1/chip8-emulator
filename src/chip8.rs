@@ -37,12 +37,17 @@
 use std::{fs::File, io::Read};
 
 pub struct Chip8 {
+    /// program counter
     pc: u16,
+    /// 4K memory
     mem: [u8; 4096],
 }
 
 impl Chip8 {
-    pub fn new(rom_name: &str) -> Self {
+    /// Loads in memory the `rom` passed as a parameter.
+    /// The `rom` must be a file that contains a valid ROM.
+    /// There is no check done when loading it.
+    pub fn new(rom: &str) -> Self {
         let mut chip = Chip8 {
             pc: 0x200, // Entry point of our code
             mem: [0; 4096],
@@ -50,7 +55,7 @@ impl Chip8 {
         let mut opcode = [0; 4]; // opcode is 4 bytes
         let mut pc = chip.pc as usize;
 
-        let mut f = File::open(rom_name).unwrap();
+        let mut f = File::open(rom).unwrap();
         while let Ok(()) = f.read_exact(&mut opcode) {
             if pc >= (0x0EA0 - 4) {
                 println!("Memory is full");
@@ -66,6 +71,7 @@ impl Chip8 {
         chip
     }
 
+    /// Dumps the content of all memory on stdin.
     pub fn dump_memory(&self) {
         for (i, byte) in self.mem.iter().enumerate() {
             if i % 0x10 == 0 {
