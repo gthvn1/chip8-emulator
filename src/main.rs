@@ -13,5 +13,6 @@ fn main() {
     let filename = &a[1];
     println!("You pass {filename}");
 
-    let _chip = Chip8::new(filename);
+    let chip = Chip8::new(filename);
+    chip.dump_memory();
 }

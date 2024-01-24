@@ -52,25 +52,27 @@ impl Chip8 {
 
         let mut f = File::open(rom_name).unwrap();
         while let Ok(()) = f.read_exact(&mut opcode) {
-            // Read 4 bytes by 4 bytes
-            println!(
-                "{:#06X}: {:#04x} {:#04x} {:#04x} {:#04x}",
-                pc, opcode[0], opcode[1], opcode[2], opcode[3]
-            );
-            chip.mem[pc] = opcode[0];
-            pc += 1;
-            chip.mem[pc] = opcode[1];
-            pc += 1;
-            chip.mem[pc] = opcode[2];
-            pc += 1;
-            chip.mem[pc] = opcode[3];
-            pc += 1;
-            if pc == 0x0E9F {
+            if pc >= (0x0EA0 - 4) {
                 println!("Memory is full");
                 break;
             }
+            chip.mem[pc] = opcode[0];
+            chip.mem[pc + 1] = opcode[1];
+            chip.mem[pc + 2] = opcode[2];
+            chip.mem[pc + 3] = opcode[3];
+            pc += 4;
         }
 
         chip
+    }
+
+    pub fn dump_memory(&self) {
+        for (i, byte) in self.mem.iter().enumerate() {
+            if i % 0x10 == 0 {
+                print!("\n{i:#06X}: ");
+            }
+            print!("{byte:#04x} ");
+        }
+        println!();
     }
 }
