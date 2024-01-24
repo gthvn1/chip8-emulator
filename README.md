@@ -1,6 +1,4 @@
-# chip8-emulator
-chip8 emulator in rust
+# Chip8 Emulator
 
-# Changelog
-```{include} changelog.md
-```
+- A [chip8 emulator](https://en.wikipedia.org/wiki/CHIP-8) in rust 
+- [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/changelog.md)
