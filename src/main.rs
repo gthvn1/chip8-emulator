@@ -1,4 +1,4 @@
-use chip8_emulator::chip8::Chip8;
+use chip8_emulator::{chip8::Chip8, framebuffer::Framebuffer};
 use std::{env, process::exit};
 
 fn main() {
@@ -15,4 +15,7 @@ fn main() {
 
     let chip = Chip8::new(filename);
     chip.dump_memory();
+
+    let mut fb = Framebuffer::default();
+    fb.draw();
 }
