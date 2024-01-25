@@ -36,11 +36,46 @@
 
 use std::{fs::File, io::Read};
 
+/// Chip8 has 4Ko of RAM
+const MEMSIZE: usize = 4096;
+/// Fonts are loaded at offset 0x0
+const FONTS_OFFSET: usize = 0x0;
+/// Fonts are 8x5 (5 bytes) and from 0x0 to 0xE
+const FONTS_SIZE: usize = 80;
+/// Stack offset
+const STACK_OFFSET: usize = 0x0EA0;
+/// Stack size is 96 bytes
+const STACK_SIZE: usize = 96;
+/// Display offset
+const DISPLAY_OFFSET: usize = 0xF00;
+/// Display size is 256 bytes
+const DISPLAY_SIZE: usize = 256;
+/// 16 Data registers named V0 to VF
+const VREGS_SIZE: usize = 16;
+
+#[allow(dead_code)]
+pub struct Opcode {
+    /// Address
+    nnn: u16,
+    /// 8-bit constant
+    nn: u8,
+    /// 4-bit constant
+    n: u8,
+    /// X register identifier (it is a 4-bit register)
+    x: u8,
+    /// Y register identifier (it is a 4-bit register)
+    y: u8,
+}
+
 pub struct Chip8 {
+    /// 4K memory
+    mem: [u8; MEMSIZE],
     /// program counter
     pc: u16,
-    /// 4K memory
-    mem: [u8; 4096],
+    /// Data registers from V0 to VF
+    vregs: [u8; VREGS_SIZE],
+    /// 16-bit register for memory address
+    i: u16,
 }
 
 impl Chip8 {
@@ -49,9 +84,12 @@ impl Chip8 {
     /// There is no check done when loading it.
     pub fn new(rom: &str) -> Self {
         let mut chip = Chip8 {
+            mem: [0; MEMSIZE],
             pc: 0x200, // Entry point of our code
-            mem: [0; 4096],
+            vregs: [0; VREGS_SIZE],
+            i: 0,
         };
+
         let mut opcode = [0; 4]; // opcode is 4 bytes
         let mut pc = chip.pc as usize;
 
@@ -68,7 +106,49 @@ impl Chip8 {
             pc += 4;
         }
 
+        // Load the fonts
+        chip.mem[FONTS_OFFSET..(FONTS_OFFSET + FONTS_SIZE)].copy_from_slice(&[
+            0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+            0x20, 0x60, 0x20, 0x20, 0x70, // 1
+            0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+            0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+            0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+            0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+            0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+            0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+            0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+            0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+            0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+            0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+            0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+            0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+            0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+            0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+        ]);
+
         chip
+    }
+
+    /// Return the memory where fonts are loaded
+    pub fn fonts(&self) -> &[u8] {
+        &self.mem[FONTS_OFFSET..(FONTS_OFFSET + FONTS_SIZE)]
+    }
+
+    /// Return the memory where stack is located
+    pub fn stack(&self) -> &[u8] {
+        &self.mem[STACK_OFFSET..(STACK_OFFSET + STACK_SIZE)]
+    }
+
+    /// Return the memory where display is located
+    pub fn display(&self) -> &[u8] {
+        &self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+    }
+
+    /// Emulate the instruction at program counter.
+    pub fn emulate(&mut self) {
+        let _ = self.vregs; // TODO: use it for real
+        let _ = self.i; // TODO: use it for real
+        todo!()
     }
 
     /// Dumps the content of all memory on stdin.
