@@ -57,12 +57,30 @@ impl Framebuffer {
         self.buffer[at + 6] = white_or_black(*line, 0x02);
         self.buffer[at + 7] = white_or_black(*line, 0x01);
     }
+
     pub fn draw(&mut self) {
         // SPACE INVADER SPRITE
         let space_invader: Vec<u8> = vec![0xBA, 0x7C, 0xD6, 0xFE, 0x54, 0xAA];
 
         for (i, v) in space_invader.iter().enumerate() {
             self.set_sprite_line_at(i * WIDTH, v);
+        }
+
+        // 0
+        let zero: Vec<u8> = vec![0xF0, 0x90, 0x90, 0x90, 0xF0];
+        let un: Vec<u8> = vec![0x20, 0x60, 0x20, 0x20, 0x70];
+        let deux: Vec<u8> = vec![0xF0, 0x10, 0xF0, 0x80, 0xF0];
+
+        for (i, v) in zero.iter().enumerate() {
+            self.set_sprite_line_at(i * WIDTH + 0x8, v);
+        }
+
+        for (i, v) in un.iter().enumerate() {
+            self.set_sprite_line_at(i * WIDTH + 0x10, v);
+        }
+
+        for (i, v) in deux.iter().enumerate() {
+            self.set_sprite_line_at(i * WIDTH + 0x18, v);
         }
 
         while self.window.is_open() && !self.window.is_key_down(Key::Escape) {
