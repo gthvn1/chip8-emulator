@@ -33,7 +33,9 @@
 //!     - sprites is 8 wide and 1->15 pixels height
 //!     - sprites are XOR'ed with corresponding screen pixels
 //! - A beeping sound is played when sound timer is nonzero.
+mod opcode;
 
+use opcode::Opcode;
 use std::{fs::File, io::Read};
 
 /// Chip8 has 4Ko of RAM
@@ -54,20 +56,6 @@ const DISPLAY_SIZE: usize = 256;
 const VREGS_SIZE: usize = 16;
 /// Opcode is 2 bytes
 const OPCODE_SIZE: usize = 2;
-
-#[allow(dead_code)]
-pub struct Opcode {
-    /// Address
-    nnn: u16,
-    /// 8-bit constant
-    nn: u8,
-    /// 4-bit constant
-    n: u8,
-    /// X register identifier (it is a 4-bit register)
-    x: u8,
-    /// Y register identifier (it is a 4-bit register)
-    y: u8,
-}
 
 pub struct Chip8 {
     /// 4K memory
@@ -150,27 +138,39 @@ impl Chip8 {
         let _ = self.i; // TODO: use it for real
 
         let pc = self.pc as usize;
-        let opcode = &self.mem[pc..pc + OPCODE_SIZE];
+        let opcode = Opcode::new(u16::from_be_bytes(
+            self.mem[pc..pc + OPCODE_SIZE].try_into().unwrap(),
+        ));
 
-        println!("read {:?}", opcode);
+        println!("read {opcode}");
 
-        match opcode[0] & 0xF0 {
-            0x00 => todo!("implement opcode starting by 0"),
-            0x10 => todo!("implement opcode starting by 1"),
-            0x20 => todo!("implement opcode starting by 2"),
-            0x30 => todo!("implement opcode starting by 3"),
-            0x40 => todo!("implement opcode starting by 4"),
-            0x50 => todo!("implement opcode starting by 5"),
-            0x60 => todo!("implement opcode starting by 6"),
-            0x70 => todo!("implement opcode starting by 7"),
-            0x80 => todo!("implement opcode starting by 8"),
-            0x90 => todo!("implement opcode starting by 9"),
-            0xA0 => todo!("implement opcode starting by A"),
-            0xB0 => todo!("implement opcode starting by B"),
-            0xC0 => todo!("implement opcode starting by C"),
-            0xD0 => todo!("implement opcode starting by D"),
-            0xE0 => todo!("implement opcode starting by E"),
-            _ => unreachable!(),
+        match opcode.upper4() {
+            0x0 => {
+                // There is 3 opcode that starts
+                if opcode.value() == 0x00E0 {
+                    todo!("00E0 is not implemented");
+                } else if opcode.value() == 0x00EE {
+                    todo!("00EE is not implemented");
+                } else {
+                    todo!("0NNN is not implemented");
+                }
+            }
+            0x1 => todo!("1NNN is not implemented"),
+            0x2 => todo!("2NNN is not implemented"),
+            0x3 => todo!("3XNN is not implemented"),
+            0x4 => todo!("4XNN is not implemented"),
+            0x5 => todo!("5XY0 is not implemented"),
+            0x6 => todo!("6XNN is not implemented"),
+            0x7 => todo!("7XNN is not implemented"),
+            0x8 => todo!("Opcode starting by 8 are not implemented"),
+            0x9 => todo!("9XY0 is not implemented"),
+            0xA => todo!("ANNN is not implemented"),
+            0xB => todo!("BNNN is not implemented"),
+            0xC => todo!("CXNN is not implemented"),
+            0xD => todo!("DXYN is not implemented"),
+            0xE => todo!("Opcode starting by E are not implemented"),
+            0xF => todo!("Opcode starting by F are not implemented"),
+            _ => unreachable!("Unkown opcode {opcode}"),
         }
     }
 
