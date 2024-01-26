@@ -52,6 +52,8 @@ const DISPLAY_OFFSET: usize = 0xF00;
 const DISPLAY_SIZE: usize = 256;
 /// 16 Data registers named V0 to VF
 const VREGS_SIZE: usize = 16;
+/// Opcode is 2 bytes
+const OPCODE_SIZE: usize = 2;
 
 #[allow(dead_code)]
 pub struct Opcode {
@@ -90,20 +92,18 @@ impl Chip8 {
             i: 0,
         };
 
-        let mut opcode = [0; 4]; // opcode is 4 bytes
+        // We can read byte per byte
+        let mut byte: [u8; 1] = [0];
         let mut pc = chip.pc as usize;
 
         let mut f = File::open(rom).unwrap();
-        while let Ok(()) = f.read_exact(&mut opcode) {
-            if pc >= (0x0EA0 - 4) {
+        while let Ok(()) = f.read_exact(&mut byte) {
+            if pc >= 0x0EA0 {
                 println!("Memory is full");
                 break;
             }
-            chip.mem[pc] = opcode[0];
-            chip.mem[pc + 1] = opcode[1];
-            chip.mem[pc + 2] = opcode[2];
-            chip.mem[pc + 3] = opcode[3];
-            pc += 4;
+            chip.mem[pc] = byte[0];
+            pc += 1;
         }
 
         // Load the fonts
@@ -145,10 +145,33 @@ impl Chip8 {
     }
 
     /// Emulate the instruction at program counter.
-    pub fn emulate(&mut self) {
+    pub fn emulate_one_insn(&mut self) {
         let _ = self.vregs; // TODO: use it for real
         let _ = self.i; // TODO: use it for real
-        todo!()
+
+        let pc = self.pc as usize;
+        let opcode = &self.mem[pc..pc + OPCODE_SIZE];
+
+        println!("read {:?}", opcode);
+
+        match opcode[0] & 0xF0 {
+            0x00 => todo!("implement opcode starting by 0"),
+            0x10 => todo!("implement opcode starting by 1"),
+            0x20 => todo!("implement opcode starting by 2"),
+            0x30 => todo!("implement opcode starting by 3"),
+            0x40 => todo!("implement opcode starting by 4"),
+            0x50 => todo!("implement opcode starting by 5"),
+            0x60 => todo!("implement opcode starting by 6"),
+            0x70 => todo!("implement opcode starting by 7"),
+            0x80 => todo!("implement opcode starting by 8"),
+            0x90 => todo!("implement opcode starting by 9"),
+            0xA0 => todo!("implement opcode starting by A"),
+            0xB0 => todo!("implement opcode starting by B"),
+            0xC0 => todo!("implement opcode starting by C"),
+            0xD0 => todo!("implement opcode starting by D"),
+            0xE0 => todo!("implement opcode starting by E"),
+            _ => unreachable!(),
+        }
     }
 
     /// Dumps the content of all memory on stdin.

@@ -13,7 +13,8 @@ fn main() {
     let filename = &a[1];
     println!("You pass {filename}");
 
-    let chip = Chip8::new(filename);
+    let mut chip = Chip8::new(filename);
+    chip.emulate_one_insn();
     chip.dump_memory();
 
     let mut fb = Framebuffer::default();
