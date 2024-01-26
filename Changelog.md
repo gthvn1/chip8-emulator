@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2024-26-01
+- Implement clear screen instruction
 - Implement functions to get information from an opcode
 - Add the switch case for emulation based on the upper 4 bits of the opcode
 - Add fonts

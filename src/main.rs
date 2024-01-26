@@ -13,10 +13,21 @@ fn main() {
     let filename = &a[1];
     println!("You pass {filename}");
 
+    let mut fb = Framebuffer::new(64, 32);
     let mut chip = Chip8::new(filename);
+
+    // Should start with a blank screen
+    fb.draw(chip.framebuffer());
+    std::thread::sleep(std::time::Duration::from_secs_f32(2.0));
+
+    // First instruction of IBM logo is clean screen so it should become
+    // black after 2 seconds...
     chip.emulate_one_insn();
+    fb.draw(chip.framebuffer());
+
     chip.dump_memory();
 
-    let mut fb = Framebuffer::default();
-    fb.draw();
+    // Sleep before closing window
+    // TODO: find a better way :)
+    std::thread::sleep(std::time::Duration::from_secs_f32(2.0));
 }

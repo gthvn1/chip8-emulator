@@ -1,4 +1,4 @@
-use minifb::{Key, Window, WindowOptions};
+use minifb::{Window, WindowOptions};
 
 fn from_u8_rgb(r: u8, g: u8, b: u8) -> u32 {
     let (r, g, b) = (r as u32, g as u32, b as u32);
@@ -15,22 +15,19 @@ fn white_or_black(v: u8, mask: u8) -> u32 {
         white
     }
 }
-const WIDTH: usize = 64;
-const HEIGHT: usize = 32;
 
 pub struct Framebuffer {
-    buffer: Vec<u32>,
     window: Window,
+    width: usize,
+    height: usize,
 }
 
 impl Framebuffer {
-    pub fn new() -> Self {
-        let buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
-
-        let mut window = Window::new(
+    pub fn new(width: usize, height: usize) -> Self {
+        let window = Window::new(
             "Chip8 Emulation",
-            WIDTH,
-            HEIGHT,
+            width,
+            height,
             WindowOptions {
                 borderless: false,
                 scale: minifb::Scale::X16,
@@ -39,88 +36,36 @@ impl Framebuffer {
         )
         .unwrap();
 
-        // Limit to 60 fps
-        window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
-
-        Self { buffer, window }
+        Self {
+            window,
+            width,
+            height,
+        }
     }
 
     #[allow(clippy::identity_op)]
-    pub fn set_sprite_line_at(&mut self, at: usize, line: &u8) {
-        // allow writing at + 0 for readability...
-        self.buffer[at + 0] = white_or_black(*line, 0x80);
-        self.buffer[at + 1] = white_or_black(*line, 0x40);
-        self.buffer[at + 2] = white_or_black(*line, 0x20);
-        self.buffer[at + 3] = white_or_black(*line, 0x10);
-        self.buffer[at + 4] = white_or_black(*line, 0x08);
-        self.buffer[at + 5] = white_or_black(*line, 0x04);
-        self.buffer[at + 6] = white_or_black(*line, 0x02);
-        self.buffer[at + 7] = white_or_black(*line, 0x01);
-    }
+    pub fn draw(&mut self, buffer: &[u8]) {
+        // TODO: convert buffer to buf
+        // buffer is an Vec of <u8> of size 256 so each bit is a pixel
+        // And each bit will be translated by a black or white pixel depending
+        // of its value.
+        assert_eq!(buffer.len() * 8, self.width * self.height);
 
-    pub fn draw(&mut self) {
-        // SPACE INVADER SPRITE. Size 8x6
-        let space_invader: Vec<u8> = vec![0xBA, 0x7C, 0xD6, 0xFE, 0x54, 0xAA];
+        let mut buf: Vec<u32> = vec![0; self.width * self.height];
 
-        for (i, v) in space_invader.iter().enumerate() {
-            self.set_sprite_line_at(i * WIDTH, v);
+        for (i, byte) in buffer.iter().enumerate() {
+            buf[i * 8 + 0] = white_or_black(*byte, 0x80);
+            buf[i * 8 + 1] = white_or_black(*byte, 0x40);
+            buf[i * 8 + 2] = white_or_black(*byte, 0x20);
+            buf[i * 8 + 3] = white_or_black(*byte, 0x10);
+            buf[i * 8 + 4] = white_or_black(*byte, 0x8);
+            buf[i * 8 + 5] = white_or_black(*byte, 0x4);
+            buf[i * 8 + 6] = white_or_black(*byte, 0x2);
+            buf[i * 8 + 7] = white_or_black(*byte, 0x1);
         }
 
-        // TODO: This should be mapped in the memory of the chip8
-        //       Fonts size is 8x5
-        let fonts: Vec<Vec<u8>> = vec![
-            vec![0xF0, 0x90, 0x90, 0x90, 0xF0], // 0
-            vec![0x20, 0x60, 0x20, 0x20, 0x70], // 1
-            vec![0xF0, 0x10, 0xF0, 0x80, 0xF0], // 2
-            vec![0xF0, 0x10, 0xF0, 0x10, 0xF0], // 3
-            vec![0x90, 0x90, 0xF0, 0x10, 0x10], // 4
-            vec![0xF0, 0x80, 0xF0, 0x10, 0xF0], // 5
-            vec![0xF0, 0x80, 0xF0, 0x90, 0xF0], // 6
-            vec![0xF0, 0x10, 0x20, 0x40, 0x40], // 7
-            vec![0xF0, 0x90, 0xF0, 0x90, 0xF0], // 8
-            vec![0xF0, 0x90, 0xF0, 0x10, 0xF0], // 9
-            vec![0xF0, 0x90, 0xF0, 0x90, 0x90], // A
-            vec![0xE0, 0x90, 0xE0, 0x90, 0xE0], // B
-            vec![0xF0, 0x80, 0x80, 0x80, 0xF0], // C
-            vec![0xE0, 0x90, 0x90, 0x90, 0xE0], // D
-            vec![0xF0, 0x80, 0xF0, 0x80, 0xF0], // E
-            vec![0xF0, 0x80, 0xF0, 0x80, 0x80], // F
-        ];
-
-        let zero = &fonts[0];
-        let un = &fonts[1];
-        let deux = &fonts[2];
-
-        for (i, v) in zero.iter().enumerate() {
-            self.set_sprite_line_at(i * WIDTH + 0x8, v);
-        }
-
-        for (i, v) in un.iter().enumerate() {
-            self.set_sprite_line_at(i * WIDTH + 0x10, v);
-        }
-
-        for (i, v) in deux.iter().enumerate() {
-            self.set_sprite_line_at(i * WIDTH + 0x18, v);
-        }
-
-        while self.window.is_open() && !self.window.is_key_down(Key::Escape) {
-            //for i in self.buffer.iter_mut() {
-            //    *i = if *i == 0 {
-            //        0xFF
-            //    } else {
-            //        0x00
-            //    }
-            //}
-
-            self.window
-                .update_with_buffer(&self.buffer, WIDTH, HEIGHT)
-                .unwrap();
-        }
-    }
-}
-
-impl Default for Framebuffer {
-    fn default() -> Self {
-        Self::new()
+        self.window
+            .update_with_buffer(&buf, self.width, self.height)
+            .unwrap();
     }
 }

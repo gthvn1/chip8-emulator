@@ -114,6 +114,11 @@ impl Chip8 {
             0xF0, 0x80, 0xF0, 0x80, 0x80, // F
         ]);
 
+        // Write FF in display so we will be able to check that clean Display
+        // is working
+        chip.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+            .copy_from_slice(&[0xFF; DISPLAY_SIZE]);
+
         chip
     }
 
@@ -128,7 +133,7 @@ impl Chip8 {
     }
 
     /// Return the memory where display is located
-    pub fn display(&self) -> &[u8] {
+    pub fn framebuffer(&self) -> &[u8] {
         &self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
     }
 
@@ -146,9 +151,10 @@ impl Chip8 {
 
         match opcode.upper4() {
             0x0 => {
-                // There is 3 opcode that starts
                 if opcode.value() == 0x00E0 {
-                    todo!("00E0 is not implemented");
+                    // clear screen
+                    self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+                        .copy_from_slice(&[0; DISPLAY_SIZE]);
                 } else if opcode.value() == 0x00EE {
                     todo!("00EE is not implemented");
                 } else {
