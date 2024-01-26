@@ -170,7 +170,7 @@ impl Chip8 {
             0xD => todo!("DXYN is not implemented"),
             0xE => todo!("Opcode starting by E are not implemented"),
             0xF => todo!("Opcode starting by F are not implemented"),
-            _ => unreachable!("Unkown opcode {opcode}"),
+            _ => unreachable!(),
         }
     }
 
