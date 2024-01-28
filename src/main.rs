@@ -20,14 +20,21 @@ fn main() {
     fb.draw(chip.framebuffer());
     std::thread::sleep(std::time::Duration::from_secs_f32(2.0));
 
-    // First instruction of IBM logo is clean screen so it should become
-    // black after 2 seconds...
-    chip.emulate_one_insn();
-    fb.draw(chip.framebuffer());
+    // Not sure if the main loop should be here... But at least for testing
+    // it is ok.
+    loop {
+        // First instruction of IBM logo is clean screen so it should become
+        // black after 2 seconds...
+        if chip.emulate_one_insn() {
+            fb.draw(chip.framebuffer());
+        } else {
+            break;
+        }
+    }
 
     chip.dump_memory();
 
     // Sleep before closing window
     // TODO: find a better way :)
-    std::thread::sleep(std::time::Duration::from_secs_f32(2.0));
+    //std::thread::sleep(std::time::Duration::from_secs_f32(2.0));
 }

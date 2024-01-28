@@ -138,46 +138,102 @@ impl Chip8 {
     }
 
     /// Emulate the instruction at program counter.
-    pub fn emulate_one_insn(&mut self) {
+    /// Currently we are returning false for opcode that are not yet emulated
+    /// but it is for testing.
+    pub fn emulate_one_insn(&mut self) -> bool {
         let _ = self.vregs; // TODO: use it for real
         let _ = self.i; // TODO: use it for real
 
+        // Save the old PC before updating it
         let pc = self.pc as usize;
+        self.pc += OPCODE_SIZE as u16;
+
         let opcode = Opcode::new(u16::from_be_bytes(
             self.mem[pc..pc + OPCODE_SIZE].try_into().unwrap(),
         ));
 
         println!("read {opcode}");
 
-        match opcode.upper4() {
+        return match opcode.upper4() {
             0x0 => {
                 if opcode.value() == 0x00E0 {
                     // clear screen
                     self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
                         .copy_from_slice(&[0; DISPLAY_SIZE]);
+                    true
                 } else if opcode.value() == 0x00EE {
-                    todo!("00EE is not implemented");
+                    println!("00EE is not implemented");
+                    false
                 } else {
-                    todo!("0NNN is not implemented");
+                    println!("0NNN is not implemented");
+                    false
                 }
             }
-            0x1 => todo!("1NNN is not implemented"),
-            0x2 => todo!("2NNN is not implemented"),
-            0x3 => todo!("3XNN is not implemented"),
-            0x4 => todo!("4XNN is not implemented"),
-            0x5 => todo!("5XY0 is not implemented"),
-            0x6 => todo!("6XNN is not implemented"),
-            0x7 => todo!("7XNN is not implemented"),
-            0x8 => todo!("Opcode starting by 8 are not implemented"),
-            0x9 => todo!("9XY0 is not implemented"),
-            0xA => todo!("ANNN is not implemented"),
-            0xB => todo!("BNNN is not implemented"),
-            0xC => todo!("CXNN is not implemented"),
-            0xD => todo!("DXYN is not implemented"),
-            0xE => todo!("Opcode starting by E are not implemented"),
-            0xF => todo!("Opcode starting by F are not implemented"),
+            0x1 => {
+                println!("1NNN is not implemented");
+                false
+            }
+            0x2 => {
+                println!("2NNN is not implemented");
+                false
+            }
+            0x3 => {
+                println!("3XNN is not implemented");
+                false
+            }
+            0x4 => {
+                println!("4XNN is not implemented");
+                false
+            }
+            0x5 => {
+                println!("5XY0 is not implemented");
+                false
+            }
+            0x6 => {
+                let idx = opcode.x() as usize;
+                self.vregs[idx] = opcode.nn();
+                true
+            }
+            0x7 => {
+                println!("7XNN is not implemented");
+                false
+            }
+            0x8 => {
+                println!("Opcode starting by 8 are not implemented");
+                false
+            }
+            0x9 => {
+                println!("9XY0 is not implemented");
+                false
+            }
+            0xA => {
+                self.i = opcode.nnn();
+                true
+            }
+            0xB => {
+                println!("BNNN is not implemented");
+                false
+            }
+            0xC => {
+                println!("CXNN is not implemented");
+                false
+            }
+            0xD =>
+            // Draw a sprite 8xN at coordinate (VX, VY)
+            {
+                println!("DXYN is not implemented");
+                false
+            }
+            0xE => {
+                println!("Opcode starting by E are not implemented");
+                false
+            }
+            0xF => {
+                println!("Opcode starting by F are not implemented");
+                false
+            }
             _ => unreachable!(),
-        }
+        };
     }
 
     /// Dumps the content of all memory on stdin.

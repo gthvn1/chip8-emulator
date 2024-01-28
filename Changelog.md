@@ -1,5 +1,8 @@
 # Changelog
 
+## 2024-28-01
+- Implement ANNN, 6XNN
+
 ## 2024-26-01
 - Implement clear screen instruction
 - Implement functions to get information from an opcode

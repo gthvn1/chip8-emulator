@@ -24,7 +24,7 @@ pub struct Framebuffer {
 
 impl Framebuffer {
     pub fn new(width: usize, height: usize) -> Self {
-        let window = Window::new(
+        let mut window = Window::new(
             "Chip8 Emulation",
             width,
             height,
@@ -35,6 +35,9 @@ impl Framebuffer {
             },
         )
         .unwrap();
+
+        // Limit to max ~60 fps update rate
+        window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
         Self {
             window,
