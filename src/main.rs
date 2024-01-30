@@ -36,5 +36,5 @@ fn main() {
 
     // Sleep before closing window
     // TODO: find a better way :)
-    //std::thread::sleep(std::time::Duration::from_secs_f32(2.0));
+    std::thread::sleep(std::time::Duration::from_secs_f32(2.0));
 }

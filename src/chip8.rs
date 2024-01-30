@@ -224,20 +224,25 @@ impl Chip8 {
                 let y = self.vregs[opcode.y() as usize] as usize;
                 let n = opcode.n() as usize;
                 let sprite = &self.mem[self.i as usize..(self.i as usize + n)];
-                let _fb = self.framebuffer();
+                let mut fb = self.framebuffer().to_vec();
 
-                assert!(x + 8 < 64);
-                assert!(y + n < 32);
+                assert!(x + 8 < 64); // We have 8 bytes for a line (64 pixels)
+                assert!(y + n < 32); // We have at most 32 lines
 
-                // We have 8 pixesl per line
+                // We have 8 pixels per line
                 for (idx, pixels) in sprite.iter().enumerate() {
+                    let x = x / 8; // Transform pixel to bytes
                     let offset = x + x * (y + idx);
-                    println!(
-                        "Drawing {pixels:#x} at ({x},{}) -> {offset} is not implemented",
-                        y as usize + idx
-                    );
+                    println!("(x:{x}, y:{y}), idx:{idx}, {pixels:?} -> @ {offset}");
+                    fb[offset] = *pixels;
                 }
-                false
+                if self.framebuffer().to_vec() == fb {
+                    self.vregs[0xF] = 0;
+                } else {
+                    self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb);
+                    self.vregs[0xF] = 1;
+                }
+                true
             }
             0xE => {
                 println!("Opcode starting by E are not implemented");
