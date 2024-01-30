@@ -195,8 +195,9 @@ impl Chip8 {
                 true
             }
             0x7 => {
-                println!("7XNN is not implemented");
-                false
+                let idx = opcode.x() as usize;
+                self.vregs[idx] += opcode.nn();
+                true
             }
             0x8 => {
                 println!("Opcode starting by 8 are not implemented");
