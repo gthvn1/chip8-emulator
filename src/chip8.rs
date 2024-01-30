@@ -218,10 +218,25 @@ impl Chip8 {
                 println!("CXNN is not implemented");
                 false
             }
-            0xD =>
-            // Draw a sprite 8xN at coordinate (VX, VY)
-            {
-                println!("DXYN is not implemented");
+            0xD => {
+                // Draw a sprite 8xN at coordinate (VX, VY)
+                let x = self.vregs[opcode.x() as usize] as usize;
+                let y = self.vregs[opcode.y() as usize] as usize;
+                let n = opcode.n() as usize;
+                let sprite = &self.mem[self.i as usize..(self.i as usize + n)];
+                let _fb = self.framebuffer();
+
+                assert!(x + 8 < 64);
+                assert!(y + n < 32);
+
+                // We have 8 pixesl per line
+                for (idx, pixels) in sprite.iter().enumerate() {
+                    let offset = x + x * (y + idx);
+                    println!(
+                        "Drawing {pixels:#x} at ({x},{}) -> {offset} is not implemented",
+                        y as usize + idx
+                    );
+                }
                 false
             }
             0xE => {
