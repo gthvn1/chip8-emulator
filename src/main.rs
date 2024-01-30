@@ -25,14 +25,15 @@ fn main() {
     loop {
         // First instruction of IBM logo is clean screen so it should become
         // black after 2 seconds...
-        if chip.emulate_one_insn() {
-            fb.draw(chip.framebuffer());
-        } else {
-            break;
+        match chip.emulate_one_insn() {
+            Ok(()) => fb.draw(chip.framebuffer()),
+            Err(_) => {
+                println!("Failed to emulate last instruction");
+                chip.dump_memory();
+                break;
+            }
         }
     }
-
-    chip.dump_memory();
 
     // Sleep before closing window
     // TODO: find a better way :)

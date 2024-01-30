@@ -57,6 +57,10 @@ const VREGS_SIZE: usize = 16;
 /// Opcode is 2 bytes
 const OPCODE_SIZE: usize = 2;
 
+pub enum Chip8Error {
+    NotImplemented,
+}
+
 pub struct Chip8 {
     /// 4K memory
     mem: [u8; MEMSIZE],
@@ -140,7 +144,7 @@ impl Chip8 {
     /// Emulate the instruction at program counter.
     /// Currently we are returning false for opcode that are not yet emulated
     /// but it is for testing.
-    pub fn emulate_one_insn(&mut self) -> bool {
+    pub fn emulate_one_insn(&mut self) -> Result<(), Chip8Error> {
         let _ = self.vregs; // TODO: use it for real
         let _ = self.i; // TODO: use it for real
 
@@ -152,73 +156,39 @@ impl Chip8 {
             self.mem[pc..pc + OPCODE_SIZE].try_into().unwrap(),
         ));
 
-        println!("read {opcode}");
+        println!("[debug] emulate {opcode}");
 
-        return match opcode.upper4() {
+        match opcode.upper4() {
             0x0 => {
                 if opcode.value() == 0x00E0 {
                     // clear screen
                     self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
                         .copy_from_slice(&[0; DISPLAY_SIZE]);
-                    true
                 } else if opcode.value() == 0x00EE {
-                    println!("00EE is not implemented");
-                    false
+                    return Err(Chip8Error::NotImplemented);
                 } else {
-                    println!("0NNN is not implemented");
-                    false
+                    return Err(Chip8Error::NotImplemented);
                 }
             }
-            0x1 => {
-                self.pc = opcode.nn() as u16;
-                true
-            }
-            0x2 => {
-                println!("2NNN is not implemented");
-                false
-            }
-            0x3 => {
-                println!("3XNN is not implemented");
-                false
-            }
-            0x4 => {
-                println!("4XNN is not implemented");
-                false
-            }
-            0x5 => {
-                println!("5XY0 is not implemented");
-                false
-            }
+            0x1 => self.pc = opcode.nn() as u16,
+
+            0x2 => return Err(Chip8Error::NotImplemented),
+            0x3 => return Err(Chip8Error::NotImplemented),
+            0x4 => return Err(Chip8Error::NotImplemented),
+            0x5 => return Err(Chip8Error::NotImplemented),
             0x6 => {
                 let idx = opcode.x() as usize;
                 self.vregs[idx] = opcode.nn();
-                true
             }
             0x7 => {
                 let idx = opcode.x() as usize;
                 self.vregs[idx] += opcode.nn();
-                true
             }
-            0x8 => {
-                println!("Opcode starting by 8 are not implemented");
-                false
-            }
-            0x9 => {
-                println!("9XY0 is not implemented");
-                false
-            }
-            0xA => {
-                self.i = opcode.nnn();
-                true
-            }
-            0xB => {
-                println!("BNNN is not implemented");
-                false
-            }
-            0xC => {
-                println!("CXNN is not implemented");
-                false
-            }
+            0x8 => return Err(Chip8Error::NotImplemented),
+            0x9 => return Err(Chip8Error::NotImplemented),
+            0xA => self.i = opcode.nnn(),
+            0xB => return Err(Chip8Error::NotImplemented),
+            0xC => return Err(Chip8Error::NotImplemented),
             0xD => {
                 // Draw a sprite 8xN at coordinate (VX, VY)
                 let x = self.vregs[opcode.x() as usize] as usize;
@@ -243,18 +213,13 @@ impl Chip8 {
                     self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb);
                     self.vregs[0xF] = 1;
                 }
-                true
             }
-            0xE => {
-                println!("Opcode starting by E are not implemented");
-                false
-            }
-            0xF => {
-                println!("Opcode starting by F are not implemented");
-                false
-            }
+            0xE => return Err(Chip8Error::NotImplemented),
+            0xF => return Err(Chip8Error::NotImplemented),
             _ => unreachable!(),
         };
+
+        Ok(())
     }
 
     /// Dumps the content of all memory on stdin.
