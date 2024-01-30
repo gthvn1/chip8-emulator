@@ -170,8 +170,8 @@ impl Chip8 {
                 }
             }
             0x1 => {
-                println!("1NNN is not implemented");
-                false
+                self.pc = opcode.nn() as u16;
+                true
             }
             0x2 => {
                 println!("2NNN is not implemented");
