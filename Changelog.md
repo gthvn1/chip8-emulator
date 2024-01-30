@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2024-28-01
+- Implement DXYN, 1NNN, 7XNN
 - Implement ANNN, 6XNN
 
 ## 2024-26-01
