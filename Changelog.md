@@ -1,5 +1,9 @@
 # Changelog
 
+## 2024-04-26
+- Use env logger
+- Remove the use of framebuffer for trying to solve the issue with IBM logo
+
 ## 2024-28-01
 - Implement DXYN, 1NNN, 7XNN
 - Implement ANNN, 6XNN

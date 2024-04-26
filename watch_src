@@ -1,0 +1,26 @@
+#!/bin/bash
+
+clear
+echo "Monitoring src/ for changes..."
+echo -n "Hint: By default it runs tests."
+echo "Pass 'b' to build or 'r' to run the code"
+
+case $1 in
+b) CMD="cargo build" ;;
+r) CMD="cargo run --bin emulator chip8-roms/IBM_logo.ch8" ;;
+*) CMD="cargo test" ;;
+esac
+
+inotifywait -q -m -r -e modify src | while read -r _DIRECTORY EVENT _FILE; do
+	# echo $DIRECTORY $EVENT $FILE
+	case $EVENT in
+	MODIFY*)
+		clear
+		echo "= ${CMD} ==============================="
+		echo
+		RUST_LOG=debug bash -c "${CMD}"
+		echo
+		echo "= $(date) ==================="
+		;;
+	esac
+done

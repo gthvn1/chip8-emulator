@@ -35,6 +35,7 @@
 //! - A beeping sound is played when sound timer is nonzero.
 mod opcode;
 
+use log;
 use opcode::Opcode;
 use std::{fs::File, io::Read};
 
@@ -57,49 +58,63 @@ const VREGS_SIZE: usize = 16;
 /// Opcode is 2 bytes
 const OPCODE_SIZE: usize = 2;
 
+#[derive(Debug)]
 pub enum Chip8Error {
     NotImplemented,
+    MemoryFull,
+    UnknownOpcode,
 }
 
 pub struct Chip8 {
     /// 4K memory
     mem: [u8; MEMSIZE],
     /// program counter
-    pc: u16,
+    pc: usize,
     /// Data registers from V0 to VF
     vregs: [u8; VREGS_SIZE],
     /// 16-bit register for memory address
     i: u16,
 }
 
+impl Default for Chip8 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Chip8 {
-    /// Loads in memory the `rom` passed as a parameter.
-    /// The `rom` must be a file that contains a valid ROM.
-    /// There is no check done when loading it.
-    pub fn new(rom: &str) -> Self {
-        let mut chip = Chip8 {
+    pub fn new() -> Self {
+        Chip8 {
             mem: [0; MEMSIZE],
             pc: 0x200, // Entry point of our code
             vregs: [0; VREGS_SIZE],
             i: 0,
-        };
+        }
+    }
 
+    /// Loads in memory the `rom` passed as a parameter.
+    /// The `rom` must be a file that contains a valid ROM.
+    /// There is no check done when loading it.
+    pub fn load(&mut self, from: &str) -> Result<(), Chip8Error> {
         // We can read byte per byte
         let mut byte: [u8; 1] = [0];
-        let mut pc = chip.pc as usize;
 
-        let mut f = File::open(rom).unwrap();
+        // We don't want to change the PC so don't use self.pc to load
+        // the program
+        let mut pc = self.pc;
+        let mut f = File::open(from).unwrap();
+
         while let Ok(()) = f.read_exact(&mut byte) {
             if pc >= 0x0EA0 {
-                println!("Memory is full");
-                break;
+                eprintln!("Memory is full");
+                return Err(Chip8Error::MemoryFull);
             }
-            chip.mem[pc] = byte[0];
+            self.mem[pc] = byte[0];
             pc += 1;
         }
 
-        // Load the fonts
-        chip.mem[FONTS_OFFSET..(FONTS_OFFSET + FONTS_SIZE)].copy_from_slice(&[
+        // Load the fonts at FONTS_OFFSET
+        self.mem[FONTS_OFFSET..(FONTS_OFFSET + FONTS_SIZE)].copy_from_slice(&[
             0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
             0x20, 0x60, 0x20, 0x20, 0x70, // 1
             0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -118,12 +133,12 @@ impl Chip8 {
             0xF0, 0x80, 0xF0, 0x80, 0x80, // F
         ]);
 
-        // Write FF in display so we will be able to check that clean Display
-        // is working
-        chip.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+        // Write 0xFF in display so we will be able to check that clean Display
+        // is working.
+        self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
             .copy_from_slice(&[0xFF; DISPLAY_SIZE]);
 
-        chip
+        Ok(())
     }
 
     /// Return the memory where fonts are loaded
@@ -148,15 +163,13 @@ impl Chip8 {
         let _ = self.vregs; // TODO: use it for real
         let _ = self.i; // TODO: use it for real
 
-        // Save the old PC before updating it
-        let pc = self.pc as usize;
-        self.pc += OPCODE_SIZE as u16;
-
         let opcode = Opcode::new(u16::from_be_bytes(
-            self.mem[pc..pc + OPCODE_SIZE].try_into().unwrap(),
+            self.mem[self.pc..self.pc + OPCODE_SIZE].try_into().unwrap(),
         ));
 
-        println!("[debug] emulate {opcode}");
+        log::debug!("pc = {:#06x}, opcode = {}", self.pc, opcode);
+
+        self.pc += OPCODE_SIZE;
 
         match opcode.upper4() {
             0x0 => {
@@ -170,8 +183,7 @@ impl Chip8 {
                     return Err(Chip8Error::NotImplemented);
                 }
             }
-            0x1 => self.pc = opcode.nn() as u16,
-
+            0x1 => self.pc = opcode.nnn() as usize,
             0x2 => return Err(Chip8Error::NotImplemented),
             0x3 => return Err(Chip8Error::NotImplemented),
             0x4 => return Err(Chip8Error::NotImplemented),
@@ -191,20 +203,26 @@ impl Chip8 {
             0xC => return Err(Chip8Error::NotImplemented),
             0xD => {
                 // Draw a sprite 8xN at coordinate (VX, VY)
-                let x = self.vregs[opcode.x() as usize] as usize;
-                let y = self.vregs[opcode.y() as usize] as usize;
+                // VX and VY are in pixels
+                let vx = self.vregs[opcode.x() as usize] as usize;
+                let vy = self.vregs[opcode.y() as usize] as usize;
                 let n = opcode.n() as usize;
+
+                println!("Draw a 8x{n} sprite at ({vx}, {vy})");
+
                 let sprite = &self.mem[self.i as usize..(self.i as usize + n)];
+                println!("Sprite is {sprite:?}");
+
                 let mut fb = self.framebuffer().to_vec();
 
-                assert!(x + 8 < 64); // We have 8 bytes for a line (64 pixels)
-                assert!(y + n < 32); // We have at most 32 lines
+                assert!(vx + 8 < 64); // We have 8 bytes for a line (64 pixels)
+                assert!(vy + n < 32); // We have at most 32 lines
 
                 // We have 8 pixels per line
                 for (idx, pixels) in sprite.iter().enumerate() {
-                    let x = x / 8; // Transform pixel to bytes
-                    let offset = x + x * (y + idx);
-                    println!("(x:{x}, y:{y}), idx:{idx}, {pixels:?} -> @ {offset}");
+                    let x = vx / 8; // Transform pixel to bytes
+                    let offset = x + x * (vy + idx);
+                    //println!("(x:{x}, y:{vy}), idx:{idx}, {pixels:?} -> @ {offset}");
                     fb[offset] = *pixels;
                 }
                 if self.framebuffer().to_vec() == fb {
@@ -216,10 +234,22 @@ impl Chip8 {
             }
             0xE => return Err(Chip8Error::NotImplemented),
             0xF => return Err(Chip8Error::NotImplemented),
-            _ => unreachable!(),
+            _ => {
+                eprintln!("unknown opcode: {opcode}");
+                return Err(Chip8Error::UnknownOpcode);
+            }
         };
 
         Ok(())
+    }
+
+    pub fn run(&mut self) {
+        loop {
+            if self.emulate_one_insn().is_err() {
+                eprint!("failed to emulate instruction\n");
+                break;
+            }
+        }
     }
 
     /// Dumps the content of all memory on stdin.

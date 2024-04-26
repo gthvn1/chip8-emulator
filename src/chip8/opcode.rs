@@ -1,6 +1,7 @@
 use std::fmt;
 
 /// Opcode is always 2 bytes in CHIP8
+
 pub struct Opcode {
     value: u16,
 }
