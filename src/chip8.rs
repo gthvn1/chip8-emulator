@@ -208,26 +208,31 @@ impl Chip8 {
                 let sprite = &self.mem[self.i as usize..(self.i as usize + n)];
                 println!("Sprite is {sprite:?}");
 
-                let mut fb = self.get_copy_of_framebuffer();
-
-                assert!(vx + 8 < 64); // We have 8 bytes for a line (64 pixels)
-                assert!(vy + n < 32); // We have at most 32 lines
-
                 // We have 8 pixels per line
+                self.vregs[0xF] = 0; // Will be set if a pixel is set from set to unset
+
+                // We need to use a copy of the framebuffer because sprite has an immutable
+                // borrow on self.mem.
+                let mut fb_copy = self.get_copy_of_framebuffer();
                 for (idx, pixels) in sprite.iter().enumerate() {
-                    let x = vx / 8; // Transform pixel to bytes
-                    let offset = x + x * (vy + idx);
-                    //println!("(x:{x}, y:{vy}), idx:{idx}, {pixels:?} -> @ {offset}");
-                    fb[offset] = *pixels;
+                    log::debug!("  idx {idx}, pixels {pixels}");
+                    for bit in 0..8 {
+                        if (pixels & (0b10000000 >> bit)) == 1 {
+                            // when pixel is set we don't need to check if it has been flipped
+                            let _ =
+                                set_pixel(&mut fb_copy, vx as u8 + bit as u8, vy as u8 + idx as u8);
+                        } else {
+                            if unset_pixel(&mut fb_copy, vx as u8 + bit as u8, vy as u8 + idx as u8)
+                            {
+                                // pixel was 1 and it is now 0
+                                self.vregs[0xF] = 1;
+                            }
+                        }
+                    }
                 }
 
-                // Check if fb has been modified
-                if self.get_copy_of_framebuffer() == fb {
-                    self.vregs[0xF] = 0;
-                } else {
-                    self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb);
-                    self.vregs[0xF] = 1;
-                }
+                // Update the real framebuffer
+                self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
             }
             0xE => return Err(Chip8Error::NotImplemented),
             0xF => return Err(Chip8Error::NotImplemented),
@@ -262,4 +267,32 @@ impl Chip8 {
         }
         println!();
     }
+}
+
+/// Set bit to 1 at x, y and returns true if pixel has been flipped.
+pub fn set_pixel(v: &mut Vec<u8>, x: u8, y: u8) -> bool {
+    let byte = x / 8 + y * 8;
+    let bit = x % 8;
+    let read_byte = v[byte as usize];
+    // if bit is not already set then set it and returns true
+    // because we flip it
+    if read_byte & (1 << bit) == 0 {
+        v[byte as usize] |= 1 << bit;
+        return true;
+    }
+
+    false
+}
+
+/// Set bit to 0 at x, y and returns true if pixel has been flipped.
+pub fn unset_pixel(v: &mut Vec<u8>, x: u8, y: u8) -> bool {
+    let byte = x / 8 + y * 8;
+    let bit = x % 8;
+    let read_byte = v[byte as usize];
+    if read_byte & (1 << bit) == 1 {
+        v[byte as usize] &= !(1 << bit);
+        return true;
+    }
+
+    false
 }
