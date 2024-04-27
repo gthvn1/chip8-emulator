@@ -2,6 +2,7 @@
 
 ## What?
 - A *chip8* emulator in rust
+- Only instructions used to display IBM logo are implemented
 - To run it: `cargo run --bin emulator chip8-roms/IBM_logo.ch8`
 - To debug prepend `RUST_LOG=debug`
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
