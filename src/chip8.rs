@@ -39,6 +39,8 @@ use log;
 use opcode::Opcode;
 use std::{fs::File, io::Read};
 
+use crate::framebuffer::Framebuffer;
+
 /// Chip8 has 4Ko of RAM
 const MEMSIZE: usize = 4096;
 /// Fonts are loaded at offset 0x0
@@ -57,6 +59,8 @@ const DISPLAY_SIZE: usize = 256;
 const VREGS_SIZE: usize = 16;
 /// Opcode is 2 bytes
 const OPCODE_SIZE: usize = 2;
+/// Display Resolution
+const RESOLUTION: (usize, usize) = (64, 32);
 
 #[derive(Debug)]
 pub enum Chip8Error {
@@ -74,6 +78,7 @@ pub struct Chip8 {
     vregs: [u8; VREGS_SIZE],
     /// 16-bit register for memory address
     i: u16,
+    fb: Framebuffer,
 }
 
 impl Default for Chip8 {
@@ -89,6 +94,7 @@ impl Chip8 {
             pc: 0x200, // Entry point of our code
             vregs: [0; VREGS_SIZE],
             i: 0,
+            fb: Framebuffer::new(RESOLUTION.0, RESOLUTION.1),
         }
     }
 
@@ -151,9 +157,11 @@ impl Chip8 {
         &self.mem[STACK_OFFSET..(STACK_OFFSET + STACK_SIZE)]
     }
 
-    /// Return the memory where display is located
-    pub fn framebuffer(&self) -> &[u8] {
-        &self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+    /// Return a copy of memory related to display
+    pub fn framebuffer(&self) -> Vec<u8> {
+        let mut buf = vec![0; DISPLAY_SIZE];
+        buf.copy_from_slice(&self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]);
+        buf
     }
 
     /// Emulate the instruction at program counter.
@@ -249,6 +257,9 @@ impl Chip8 {
                 eprint!("failed to emulate instruction\n");
                 break;
             }
+
+            // Draw frame buffer
+            self.fb.draw(&self.framebuffer());
         }
     }
 

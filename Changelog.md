@@ -1,5 +1,8 @@
 # Changelog
 
+## 2024-04-27
+- Framebuffer is now part of the chip8
+
 ## 2024-04-26
 - Use env logger
 - Remove the use of framebuffer for trying to solve the issue with IBM logo
