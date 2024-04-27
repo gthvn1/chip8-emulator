@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2024-04-27
+- Fixes issues for printing IBM logo
 - Framebuffer is now part of the chip8
 
 ## 2024-04-26

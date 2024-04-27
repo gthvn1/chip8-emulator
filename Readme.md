@@ -13,6 +13,8 @@
 
 ## Screenshots
 
+<img align="center" src="https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/ibm_logo.png">
+
 ### Drawing numbers...
 ![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/drawing_numbers.png)
 
