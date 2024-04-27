@@ -48,9 +48,9 @@ const FONTS_OFFSET: usize = 0x0;
 /// Fonts are 8x5 (5 bytes) and from 0x0 to 0xE
 const FONTS_SIZE: usize = 80;
 /// Stack offset
-const STACK_OFFSET: usize = 0x0EA0;
+const _STACK_OFFSET: usize = 0x0EA0;
 /// Stack size is 96 bytes
-const STACK_SIZE: usize = 96;
+const _STACK_SIZE: usize = 96;
 /// Display offset
 const DISPLAY_OFFSET: usize = 0xF00;
 /// Display size is 256 bytes
@@ -147,18 +147,8 @@ impl Chip8 {
         Ok(())
     }
 
-    /// Return the memory where fonts are loaded
-    pub fn fonts(&self) -> &[u8] {
-        &self.mem[FONTS_OFFSET..(FONTS_OFFSET + FONTS_SIZE)]
-    }
-
-    /// Return the memory where stack is located
-    pub fn stack(&self) -> &[u8] {
-        &self.mem[STACK_OFFSET..(STACK_OFFSET + STACK_SIZE)]
-    }
-
     /// Return a copy of memory related to display
-    pub fn framebuffer(&self) -> Vec<u8> {
+    pub fn get_copy_of_framebuffer(&self) -> Vec<u8> {
         let mut buf = vec![0; DISPLAY_SIZE];
         buf.copy_from_slice(&self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]);
         buf
@@ -168,9 +158,6 @@ impl Chip8 {
     /// Currently we are returning false for opcode that are not yet emulated
     /// but it is for testing.
     pub fn emulate_one_insn(&mut self) -> Result<(), Chip8Error> {
-        let _ = self.vregs; // TODO: use it for real
-        let _ = self.i; // TODO: use it for real
-
         let opcode = Opcode::new(u16::from_be_bytes(
             self.mem[self.pc..self.pc + OPCODE_SIZE].try_into().unwrap(),
         ));
@@ -221,7 +208,7 @@ impl Chip8 {
                 let sprite = &self.mem[self.i as usize..(self.i as usize + n)];
                 println!("Sprite is {sprite:?}");
 
-                let mut fb = self.framebuffer().to_vec();
+                let mut fb = self.get_copy_of_framebuffer();
 
                 assert!(vx + 8 < 64); // We have 8 bytes for a line (64 pixels)
                 assert!(vy + n < 32); // We have at most 32 lines
@@ -233,7 +220,9 @@ impl Chip8 {
                     //println!("(x:{x}, y:{vy}), idx:{idx}, {pixels:?} -> @ {offset}");
                     fb[offset] = *pixels;
                 }
-                if self.framebuffer().to_vec() == fb {
+
+                // Check if fb has been modified
+                if self.get_copy_of_framebuffer() == fb {
                     self.vregs[0xF] = 0;
                 } else {
                     self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb);
@@ -259,7 +248,7 @@ impl Chip8 {
             }
 
             // Draw frame buffer
-            self.fb.draw(&self.framebuffer());
+            self.fb.draw(&self.get_copy_of_framebuffer());
         }
     }
 

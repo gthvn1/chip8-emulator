@@ -27,30 +27,25 @@ impl Opcode {
         upper.try_into().unwrap()
     }
 
-    #[allow(dead_code)]
     pub fn nnn(&self) -> u16 {
         0x0FFF & self.value
     }
 
-    #[allow(dead_code)]
     pub fn nn(&self) -> u8 {
         let v = self.value & 0xFF;
         v.try_into().unwrap()
     }
 
-    #[allow(dead_code)]
     pub fn n(&self) -> u8 {
         let v = self.value & 0xF;
         v.try_into().unwrap()
     }
 
-    #[allow(dead_code)]
     pub fn x(&self) -> u8 {
         let v = (self.value & 0x0F00) >> 8;
         v.try_into().unwrap()
     }
 
-    #[allow(dead_code)]
     pub fn y(&self) -> u8 {
         let v = (self.value & 0x00F0) >> 4;
         v.try_into().unwrap()
