@@ -1,5 +1,4 @@
 use chip8_emulator::chip8::Chip8;
-use log;
 use std::env;
 use std::process::exit;
 

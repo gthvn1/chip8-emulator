@@ -112,7 +112,7 @@ impl Chip8 {
 
         while let Ok(()) = f.read_exact(&mut byte) {
             if pc >= 0x0EA0 {
-                eprintln!("Memory is full");
+                log::debug!("Memory is full");
                 return Err(Chip8Error::MemoryFull);
             }
             self.mem[pc] = byte[0];
@@ -172,8 +172,6 @@ impl Chip8 {
                     // clear screen
                     self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
                         .copy_from_slice(&[0; DISPLAY_SIZE]);
-                } else if opcode.value() == 0x00EE {
-                    return Err(Chip8Error::NotImplemented);
                 } else {
                     return Err(Chip8Error::NotImplemented);
                 }
@@ -203,10 +201,10 @@ impl Chip8 {
                 let vy = self.vregs[opcode.y() as usize] as usize;
                 let n = opcode.n() as usize;
 
-                println!("Draw a 8x{n} sprite at ({vx}, {vy})");
+                log::debug!("Draw a 8x{n} sprite at ({vx}, {vy})");
 
                 let sprite = &self.mem[self.i as usize..(self.i as usize + n)];
-                println!("Sprite is {sprite:?}");
+                log::debug!("Sprite is {sprite:?}");
 
                 // We have 8 pixels per line
                 self.vregs[0xF] = 0; // Will be set if a pixel is set from set to unset
@@ -217,14 +215,14 @@ impl Chip8 {
                 for (idx, pixels) in sprite.iter().enumerate() {
                     log::debug!("  idx {idx}, pixels {pixels}");
                     for bit in 0..8 {
-                        if (pixels & (0b10000000 >> bit)) == 1 {
+                        let shifted = 0b10000000 >> bit;
+                        if pixels & shifted == shifted {
                             // when pixel is set we don't need to check if it has been flipped
-                            let _ =
-                                set_pixel(&mut fb_copy, vx as u8 + bit as u8, vy as u8 + idx as u8);
+                            set_pixel(&mut fb_copy, vx as u8 + bit as u8, vy as u8 + idx as u8);
                         } else {
+                            // but if unset we need to check if it has been flipped to update vregs
                             if unset_pixel(&mut fb_copy, vx as u8 + bit as u8, vy as u8 + idx as u8)
                             {
-                                // pixel was 1 and it is now 0
                                 self.vregs[0xF] = 1;
                             }
                         }
@@ -237,7 +235,7 @@ impl Chip8 {
             0xE => return Err(Chip8Error::NotImplemented),
             0xF => return Err(Chip8Error::NotImplemented),
             _ => {
-                eprintln!("unknown opcode: {opcode}");
+                log::debug!("unknown opcode: {opcode}");
                 return Err(Chip8Error::UnknownOpcode);
             }
         };
@@ -248,7 +246,7 @@ impl Chip8 {
     pub fn run(&mut self) {
         loop {
             if self.emulate_one_insn().is_err() {
-                eprint!("failed to emulate instruction\n");
+                log::debug!("failed to emulate instruction");
                 break;
             }
 
@@ -270,29 +268,33 @@ impl Chip8 {
 }
 
 /// Set bit to 1 at x, y and returns true if pixel has been flipped.
-pub fn set_pixel(v: &mut Vec<u8>, x: u8, y: u8) -> bool {
+pub fn set_pixel(v: &mut [u8], x: u8, y: u8) -> bool {
     let byte = x / 8 + y * 8;
     let bit = x % 8;
+    let shifted = 1 << (7 - bit);
     let read_byte = v[byte as usize];
+
     // if bit is not already set then set it and returns true
     // because we flip it
-    if read_byte & (1 << bit) == 0 {
-        v[byte as usize] |= 1 << bit;
-        return true;
+    if read_byte & shifted == 0 {
+        v[byte as usize] |= shifted;
+        true
+    } else {
+        false
     }
-
-    false
 }
 
 /// Set bit to 0 at x, y and returns true if pixel has been flipped.
-pub fn unset_pixel(v: &mut Vec<u8>, x: u8, y: u8) -> bool {
+pub fn unset_pixel(v: &mut [u8], x: u8, y: u8) -> bool {
     let byte = x / 8 + y * 8;
     let bit = x % 8;
+    let shifted = 1 << (7 - bit);
     let read_byte = v[byte as usize];
-    if read_byte & (1 << bit) == 1 {
-        v[byte as usize] &= !(1 << bit);
-        return true;
-    }
 
-    false
+    if read_byte & shifted == 1 {
+        v[byte as usize] &= !shifted;
+        true
+    } else {
+        false
+    }
 }
