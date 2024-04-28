@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2024-04-27
+- Implement 2NNN - CALL addr
 - Fixes issues for printing IBM logo
 - Framebuffer is now part of the chip8
 

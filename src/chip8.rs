@@ -43,14 +43,16 @@ use crate::framebuffer::Framebuffer;
 
 /// Chip8 has 4Ko of RAM
 const MEMSIZE: usize = 4096;
+/// System begin at memory location 512
+const ENTRY_POINT: usize = 0x200;
 /// Fonts are loaded at offset 0x0
 const FONTS_OFFSET: usize = 0x0;
 /// Fonts are 8x5 (5 bytes) and from 0x0 to 0xE
 const FONTS_SIZE: usize = 80;
 /// Stack offset
-const _STACK_OFFSET: usize = 0x0EA0;
+const STACK_OFFSET: usize = 0x0EA0;
 /// Stack size is 96 bytes
-const _STACK_SIZE: usize = 96;
+const STACK_SIZE: usize = 96;
 /// Display offset
 const DISPLAY_OFFSET: usize = 0xF00;
 /// Display size is 256 bytes
@@ -65,6 +67,7 @@ const RESOLUTION: (usize, usize) = (64, 32);
 pub enum Chip8Error {
     NotImplemented(opcode::Opcode),
     UnknownOpcode(opcode::Opcode),
+    StackOverflow,
     MemoryFull,
 }
 
@@ -73,6 +76,7 @@ impl fmt::Display for Chip8Error {
         match self {
             Chip8Error::NotImplemented(opcode) => write!(f, "Opcode <{opcode}> is not implemented"),
             Chip8Error::UnknownOpcode(opcode) => write!(f, "Opcode <{opcode}> is unknown"),
+            Chip8Error::StackOverflow => write!(f, "Stack overflow detected"),
             Chip8Error::MemoryFull => write!(f, "Memory is full"),
         }
     }
@@ -89,6 +93,8 @@ pub struct Chip8 {
     mem: [u8; MEMSIZE],
     /// program counter
     pc: usize,
+    /// stack pointer
+    sp: usize,
     /// Data registers from V0 to VF
     vregs: [u8; VREGS_SIZE],
     /// 16-bit register for memory address
@@ -106,7 +112,8 @@ impl Chip8 {
     pub fn new() -> Self {
         Chip8 {
             mem: [0; MEMSIZE],
-            pc: 0x200, // Entry point of our code
+            pc: ENTRY_POINT,
+            sp: STACK_OFFSET,
             vregs: [0; VREGS_SIZE],
             i: 0,
             fb: Framebuffer::new(RESOLUTION.0, RESOLUTION.1),
@@ -127,7 +134,6 @@ impl Chip8 {
 
         while let Ok(()) = f.read_exact(&mut byte) {
             if pc >= 0x0EA0 {
-                log::debug!("Memory is full");
                 return Err(Chip8Error::MemoryFull);
             }
             self.mem[pc] = byte[0];
@@ -192,7 +198,22 @@ impl Chip8 {
                 }
             }
             0x1 => self.pc = opcode.nnn() as usize,
-            0x2 => return Err(Chip8Error::NotImplemented(opcode)),
+            0x2 => {
+                let pc_low: u8 = (self.pc >> 8) as u8;
+                let pc_hi: u8 = self.pc as u8;
+
+                self.sp += 2; // Increment stack pointer
+                if self.sp >= STACK_OFFSET + STACK_SIZE {
+                    return Err(Chip8Error::StackOverflow);
+                }
+
+                // Save PC
+                self.mem[self.sp] = pc_low;
+                self.mem[self.sp + 1] = pc_hi;
+
+                // Set the new PC
+                self.pc = opcode.nnn() as usize;
+            }
             0x3 => return Err(Chip8Error::NotImplemented(opcode)),
             0x4 => return Err(Chip8Error::NotImplemented(opcode)),
             0x5 => return Err(Chip8Error::NotImplemented(opcode)),
