@@ -37,7 +37,7 @@ mod opcode;
 
 use log;
 use opcode::Opcode;
-use std::{fs::File, io::Read};
+use std::{fmt, fs::File, io::Read};
 
 use crate::framebuffer::Framebuffer;
 
@@ -62,11 +62,26 @@ const OPCODE_SIZE: usize = 2;
 /// Display Resolution
 const RESOLUTION: (usize, usize) = (64, 32);
 
-#[derive(Debug)]
 pub enum Chip8Error {
-    NotImplemented,
+    NotImplemented(opcode::Opcode),
+    UnknownOpcode(opcode::Opcode),
     MemoryFull,
-    UnknownOpcode,
+}
+
+impl fmt::Display for Chip8Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Chip8Error::NotImplemented(opcode) => write!(f, "Opcode <{opcode}> is not implemented"),
+            Chip8Error::UnknownOpcode(opcode) => write!(f, "Opcode <{opcode}> is unknown"),
+            Chip8Error::MemoryFull => write!(f, "Memory is full"),
+        }
+    }
+}
+
+impl fmt::Debug for Chip8Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
 }
 
 pub struct Chip8 {
@@ -173,14 +188,14 @@ impl Chip8 {
                     self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
                         .copy_from_slice(&[0; DISPLAY_SIZE]);
                 } else {
-                    return Err(Chip8Error::NotImplemented);
+                    return Err(Chip8Error::NotImplemented(opcode));
                 }
             }
             0x1 => self.pc = opcode.nnn() as usize,
-            0x2 => return Err(Chip8Error::NotImplemented),
-            0x3 => return Err(Chip8Error::NotImplemented),
-            0x4 => return Err(Chip8Error::NotImplemented),
-            0x5 => return Err(Chip8Error::NotImplemented),
+            0x2 => return Err(Chip8Error::NotImplemented(opcode)),
+            0x3 => return Err(Chip8Error::NotImplemented(opcode)),
+            0x4 => return Err(Chip8Error::NotImplemented(opcode)),
+            0x5 => return Err(Chip8Error::NotImplemented(opcode)),
             0x6 => {
                 let idx = opcode.x() as usize;
                 self.vregs[idx] = opcode.nn();
@@ -189,11 +204,11 @@ impl Chip8 {
                 let idx = opcode.x() as usize;
                 self.vregs[idx] += opcode.nn();
             }
-            0x8 => return Err(Chip8Error::NotImplemented),
-            0x9 => return Err(Chip8Error::NotImplemented),
+            0x8 => return Err(Chip8Error::NotImplemented(opcode)),
+            0x9 => return Err(Chip8Error::NotImplemented(opcode)),
             0xA => self.i = opcode.nnn(),
-            0xB => return Err(Chip8Error::NotImplemented),
-            0xC => return Err(Chip8Error::NotImplemented),
+            0xB => return Err(Chip8Error::NotImplemented(opcode)),
+            0xC => return Err(Chip8Error::NotImplemented(opcode)),
             0xD => {
                 // Draw a sprite 8xN at coordinate (VX, VY)
                 // VX and VY are in pixels
@@ -232,11 +247,10 @@ impl Chip8 {
                 // Update the real framebuffer
                 self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
             }
-            0xE => return Err(Chip8Error::NotImplemented),
-            0xF => return Err(Chip8Error::NotImplemented),
+            0xE => return Err(Chip8Error::NotImplemented(opcode)),
+            0xF => return Err(Chip8Error::NotImplemented(opcode)),
             _ => {
-                log::debug!("unknown opcode: {opcode}");
-                return Err(Chip8Error::UnknownOpcode);
+                return Err(Chip8Error::UnknownOpcode(opcode));
             }
         };
 
@@ -245,13 +259,13 @@ impl Chip8 {
 
     pub fn run(&mut self) {
         loop {
-            if self.emulate_one_insn().is_err() {
-                log::debug!("failed to emulate instruction");
-                break;
+            match self.emulate_one_insn() {
+                Err(e) => {
+                    log::error!("{e}");
+                    break;
+                }
+                _ => self.fb.draw(&self.get_copy_of_framebuffer()),
             }
-
-            // Draw frame buffer
-            self.fb.draw(&self.get_copy_of_framebuffer());
         }
     }
 
