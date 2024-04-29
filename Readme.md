@@ -9,7 +9,9 @@
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
 
 ## Links
+
 - [Chip8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
+- [Timendus Chip8 test suite](https://github.com/Timendus/chip8-test-suite)
 - [Chip8 emulator on wikipedia](https://en.wikipedia.org/wiki/CHIP-8)
 - [Writing a Chip8 Emulator](http://craigthomas.ca/blog/2014/06/21/writing-a-chip-8-emulator-part-1/)
 - [Inline emulator](https://chip-8.vercel.app/)
