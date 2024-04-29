@@ -28,9 +28,15 @@
 
 ## Screenshots
 
-### Timendus splash screen
+### New ones with Raylib
+
+Coming soon...
+
+### Old ones using minibf
+
+#### Timendus splash screen
 ![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/timendus.png)
 
-### Drawing numbers...
+#### Drawing numbers...
 ![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/drawing_numbers.png)
 
