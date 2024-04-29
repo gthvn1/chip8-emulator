@@ -39,8 +39,6 @@ use log;
 use opcode::Opcode;
 use std::{fmt, fs::File, io::Read};
 
-use crate::framebuffer::Framebuffer;
-
 /// Chip8 has 4Ko of RAM
 const MEMSIZE: usize = 4096;
 /// System begin at memory location 512
@@ -64,8 +62,6 @@ const DISPLAY_SIZE: usize = 256;
 const VREGS_SIZE: usize = 16;
 /// Opcode is 2 bytes
 const OPCODE_SIZE: usize = 2;
-/// Display Resolution
-const RESOLUTION: (usize, usize) = (64, 32);
 
 pub enum Chip8Error {
     NotImplemented(opcode::Opcode),
@@ -110,7 +106,6 @@ pub struct Chip8 {
     vregs: [u8; VREGS_SIZE],
     /// 16-bit register for memory address
     i: u16,
-    fb: Framebuffer,
 }
 
 impl Default for Chip8 {
@@ -127,7 +122,6 @@ impl Chip8 {
             sp: STACK_OFFSET,
             vregs: [0; VREGS_SIZE],
             i: 0,
-            fb: Framebuffer::new(RESOLUTION.0, RESOLUTION.1),
         }
     }
 
@@ -343,7 +337,7 @@ impl Chip8 {
                     log::error!("{e}");
                     break;
                 }
-                _ => self.fb.draw(&self.get_copy_of_framebuffer()),
+                _ => {}
             }
         }
     }
