@@ -33,10 +33,11 @@
 //!     - sprites is 8 wide and 1->15 pixels height
 //!     - sprites are XOR'ed with corresponding screen pixels
 //! - A beeping sound is played when sound timer is nonzero.
-mod opcode;
 
+pub mod opcode;
+
+use crate::chip8::opcode::Opcode;
 use log;
-use opcode::Opcode;
 use std::{fmt, fs::File, io::Read};
 
 /// Chip8 has 4Ko of RAM
