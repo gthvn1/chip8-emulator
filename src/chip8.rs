@@ -330,16 +330,8 @@ impl Chip8 {
         Ok(())
     }
 
-    pub fn run(&mut self) {
-        loop {
-            match self.emulate_insn() {
-                Err(e) => {
-                    log::error!("{e}");
-                    break;
-                }
-                _ => {}
-            }
-        }
+    pub fn step(&mut self) -> Result<(), Chip8Error> {
+        self.emulate_insn()
     }
 
     /// Dumps the content of all memory on stdin.

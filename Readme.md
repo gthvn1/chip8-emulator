@@ -5,7 +5,7 @@
 - We are now using Raylib so you need to build `libraylib.a` and put it under a newly created `raylib/` dir.
     - to build Raylib check the official [raylib](https://www.raylib.com/).
 - Only instructions used to display Timendus spash screen are implemented
-- To run it: `cargo run --bin emulator <ROMS>`
+- To run it: `cargo run -- <ROMS>`
     - See Timendus link below for some testing ROMS
 - To debug prepend `RUST_LOG=debug`
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
