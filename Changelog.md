@@ -5,8 +5,9 @@
 - Now print Timendus logo for testing instead of IBM logo
 - Implement 00EE - Return from subroutine
 - Implement 2NNN - CALL addr
-- Implement FX65 - LD Vx, [I]
+- Implement FX29 - LD F, Vx
 - Implement FX33 - BCD
+- Implement FX65 - LD Vx, [I]
 - Fixes issues for printing IBM logo
 - Framebuffer is now part of the chip8
 

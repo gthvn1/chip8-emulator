@@ -47,7 +47,10 @@ const MEMSIZE: usize = 4096;
 const ENTRY_POINT: usize = 0x200;
 /// Fonts are loaded at offset 0x0
 const FONTS_OFFSET: usize = 0x0;
-/// Fonts are 8x5 (5 bytes) and from 0x0 to 0xE
+/// Fonts are 8x5 (5 bytes) and from 0x0 to 0xF
+/// There are 16 fonts
+const _FONTS_WIDTH: usize = 8;
+const FONTS_HEIGHT: usize = 5;
 const FONTS_SIZE: usize = 80;
 /// Stack offset
 const STACK_OFFSET: usize = 0x0EA0;
@@ -69,7 +72,9 @@ pub enum Chip8Error {
     UnknownOpcode(opcode::Opcode),
     StackOverflow,
     StackUnderflow,
+    VregsOverflow,
     MemoryFull,
+    UndefinedHexadecimal(usize),
 }
 
 impl fmt::Display for Chip8Error {
@@ -79,7 +84,11 @@ impl fmt::Display for Chip8Error {
             Chip8Error::UnknownOpcode(opcode) => write!(f, "Opcode <{opcode}> is unknown"),
             Chip8Error::StackOverflow => write!(f, "Stack overflow detected"),
             Chip8Error::StackUnderflow => write!(f, "Stack underflow detected"),
+            Chip8Error::VregsOverflow => write!(f, "Vregs overflow detected"),
             Chip8Error::MemoryFull => write!(f, "Memory is full"),
+            Chip8Error::UndefinedHexadecimal(v) => {
+                write!(f, "Hexadecimal error: Expected a value under 16, got {v}")
+            }
         }
     }
 }
@@ -235,10 +244,16 @@ impl Chip8 {
             0x5 => return Err(Chip8Error::NotImplemented(opcode)),
             0x6 => {
                 let idx = opcode.x() as usize;
+                if idx >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
                 self.vregs[idx] = opcode.nn();
             }
             0x7 => {
                 let idx = opcode.x() as usize;
+                if idx >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
                 self.vregs[idx] += opcode.nn();
             }
             0x8 => return Err(Chip8Error::NotImplemented(opcode)),
@@ -249,6 +264,12 @@ impl Chip8 {
             0xD => {
                 // Draw a sprite 8xN at coordinate (VX, VY)
                 // VX and VY are in pixels
+                let x = opcode.x() as usize;
+                let y = opcode.y() as usize;
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
                 let vx = self.vregs[opcode.x() as usize] as usize;
                 let vy = self.vregs[opcode.y() as usize] as usize;
                 let n = opcode.n() as usize;
@@ -286,6 +307,22 @@ impl Chip8 {
             }
             0xE => return Err(Chip8Error::NotImplemented(opcode)),
             0xF => match opcode.nn() {
+                0x29 => {
+                    // I is set to the location of the hexadecimal sprite corresponding to the
+                    // value of Vx
+                    let x = opcode.x() as usize;
+                    if x >= VREGS_SIZE {
+                        return Err(Chip8Error::VregsOverflow);
+                    }
+
+                    let vx = self.vregs[x] as u16;
+                    // There are 16 hexadecimal sprites from 0 to F.
+                    if vx >= 16 as u16 {
+                        return Err(Chip8Error::UndefinedHexadecimal(vx as usize));
+                    }
+
+                    self.i = FONTS_OFFSET as u16 + FONTS_HEIGHT as u16 * vx;
+                }
                 0x33 => {
                     let vx = self.vregs[opcode.x() as usize];
                     let idx = self.i as usize;
