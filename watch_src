@@ -7,7 +7,7 @@ echo "Pass 'b' to build or 'r' to run the code"
 
 case $1 in
 b) CMD="cargo build" ;;
-r) CMD="cargo run --bin emulator chip8-roms/IBM_logo.ch8" ;;
+r) CMD="cargo run -- chip8-roms/pong.ch8" ;;
 *) CMD="cargo test" ;;
 esac
 
