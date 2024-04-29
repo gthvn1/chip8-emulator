@@ -2,7 +2,7 @@
 
 ## What?
 - Another *chip8* emulator in rust
-- Only instructions used to display IBM logo are implemented
+- Only instructions used to display Timendus spash screen are implemented
 - Next to implement for pong is `fX65`
 - To run it: `cargo run --bin emulator <ROMS>`
     - See Timendus link below for some testing ROMS
