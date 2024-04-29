@@ -4,7 +4,8 @@
 - Another *chip8* emulator in rust
 - Only instructions used to display IBM logo are implemented
 - Next to implement for pong is `fX65`
-- To run it: `cargo run --bin emulator chip8-roms/IBM_logo.ch8`
+- To run it: `cargo run --bin emulator <ROMS>`
+    - See Timendus link below for some testing ROMS
 - To debug prepend `RUST_LOG=debug`
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
 
@@ -18,8 +19,8 @@
 
 ## Screenshots
 
-### IBM Logo
-![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/ibm_logo.png)
+### Timendus splash screen
+![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/timendus.png)
 
 ### Drawing numbers...
 ![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/drawing_numbers.png)
