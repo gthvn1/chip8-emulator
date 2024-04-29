@@ -3,7 +3,7 @@
 ## What?
 - Another *chip8* emulator in rust
 - Only instructions used to display Timendus spash screen are implemented
-- Next to implement for pong is `FX65`
+- Next to implement for pong is `FX29`
 - To run it: `cargo run --bin emulator <ROMS>`
     - See Timendus link below for some testing ROMS
 - To debug prepend `RUST_LOG=debug`

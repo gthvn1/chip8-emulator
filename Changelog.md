@@ -4,8 +4,9 @@
 - Change license to be GPL 3.0
 - Now print Timendus logo for testing instead of IBM logo
 - Implement 00EE - Return from subroutine
-- Implement FX33 - BCD
 - Implement 2NNN - CALL addr
+- Implement FX65 - LD Vx, [I]
+- Implement FX33 - BCD
 - Fixes issues for printing IBM logo
 - Framebuffer is now part of the chip8
 

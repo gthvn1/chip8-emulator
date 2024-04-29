@@ -293,6 +293,14 @@ impl Chip8 {
                     self.mem[idx + 1] = (vx / 10) % 10; // tens digit
                     self.mem[idx + 2] = vx % 10; // ones digit
                 }
+                0x65 => {
+                    // Set V0 to Vx from memory starting at location i
+                    let idx = self.i as usize;
+
+                    for i in 0..16 {
+                        self.vregs[i] = self.mem[idx + i];
+                    }
+                }
                 _ => return Err(Chip8Error::NotImplemented(opcode)),
             },
             _ => {
