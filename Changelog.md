@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2024-04-27
+- Change license to be GPL 3.0
+- Now print Timendus logo for testing instead of IBM logo
+- Implement 00EE - Return from subroutine
 - Implement FX33 - BCD
 - Implement 2NNN - CALL addr
 - Fixes issues for printing IBM logo

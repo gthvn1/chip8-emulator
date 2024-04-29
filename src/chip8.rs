@@ -68,6 +68,7 @@ pub enum Chip8Error {
     NotImplemented(opcode::Opcode),
     UnknownOpcode(opcode::Opcode),
     StackOverflow,
+    StackUnderflow,
     MemoryFull,
 }
 
@@ -77,6 +78,7 @@ impl fmt::Display for Chip8Error {
             Chip8Error::NotImplemented(opcode) => write!(f, "Opcode <{opcode}> is not implemented"),
             Chip8Error::UnknownOpcode(opcode) => write!(f, "Opcode <{opcode}> is unknown"),
             Chip8Error::StackOverflow => write!(f, "Stack overflow detected"),
+            Chip8Error::StackUnderflow => write!(f, "Stack underflow detected"),
             Chip8Error::MemoryFull => write!(f, "Memory is full"),
         }
     }
@@ -193,23 +195,37 @@ impl Chip8 {
                     // clear screen
                     self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
                         .copy_from_slice(&[0; DISPLAY_SIZE]);
+                } else if opcode.value() == 0x00EE {
+                    // return from subroutine
+                    if self.sp == STACK_OFFSET {
+                        return Err(Chip8Error::StackUnderflow);
+                    }
+
+                    // Read PC from the top of the stack
+                    let pc_hi = self.mem[self.sp] as usize;
+                    let pc_low = self.mem[self.sp + 1] as usize;
+
+                    self.pc = (pc_hi << 8) | pc_low;
+
+                    // Decrement the stack pointer
+                    self.sp -= 2;
                 } else {
                     return Err(Chip8Error::NotImplemented(opcode));
                 }
             }
             0x1 => self.pc = opcode.nnn() as usize,
             0x2 => {
-                let pc_low: u8 = (self.pc >> 8) as u8;
-                let pc_hi: u8 = self.pc as u8;
-
                 self.sp += 2; // Increment stack pointer
                 if self.sp >= STACK_OFFSET + STACK_SIZE {
                     return Err(Chip8Error::StackOverflow);
                 }
 
                 // Save PC
-                self.mem[self.sp] = pc_low;
-                self.mem[self.sp + 1] = pc_hi;
+                let pc_hi: u8 = (self.pc >> 8) as u8;
+                let pc_low: u8 = self.pc as u8;
+
+                self.mem[self.sp] = pc_hi;
+                self.mem[self.sp + 1] = pc_low;
 
                 // Set the new PC
                 self.pc = opcode.nnn() as usize;
@@ -273,9 +289,9 @@ impl Chip8 {
                 0x33 => {
                     let vx = self.vregs[opcode.x() as usize];
                     let idx = self.i as usize;
-                    self.mem[idx] = ((vx / 100) % 10) as u8; // hundreds digit
-                    self.mem[idx + 1] = ((vx / 10) % 10) as u8; // tens digit
-                    self.mem[idx + 2] = (vx % 10) as u8; // ones digit
+                    self.mem[idx] = (vx / 100) % 10; // hundreds digit
+                    self.mem[idx + 1] = (vx / 10) % 10; // tens digit
+                    self.mem[idx + 2] = vx % 10; // ones digit
                 }
                 _ => return Err(Chip8Error::NotImplemented(opcode)),
             },
