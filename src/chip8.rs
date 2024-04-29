@@ -269,7 +269,16 @@ impl Chip8 {
                 self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
             }
             0xE => return Err(Chip8Error::NotImplemented(opcode)),
-            0xF => return Err(Chip8Error::NotImplemented(opcode)),
+            0xF => match opcode.nn() {
+                0x33 => {
+                    let vx = self.vregs[opcode.x() as usize];
+                    let idx = self.i as usize;
+                    self.mem[idx] = ((vx / 100) % 10) as u8; // hundreds digit
+                    self.mem[idx + 1] = ((vx / 10) % 10) as u8; // tens digit
+                    self.mem[idx + 2] = (vx % 10) as u8; // ones digit
+                }
+                _ => return Err(Chip8Error::NotImplemented(opcode)),
+            },
             _ => {
                 return Err(Chip8Error::UnknownOpcode(opcode));
             }
