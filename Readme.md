@@ -3,11 +3,18 @@
 ## What?
 - Another *chip8* emulator in rust
 - Only instructions used to display Timendus spash screen are implemented
-- Next to implement for pong is `FX15`
 - To run it: `cargo run --bin emulator <ROMS>`
     - See Timendus link below for some testing ROMS
 - To debug prepend `RUST_LOG=debug`
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
+
+## Todo
+- Next to implement for pong is `FX15`
+- But before:
+    - `FX15` is dealing with timer. We don't have any notion of timer yet.
+    - So we need to introduce it and we need to change our code
+    - We will use another frontend than minibf that doesn't have any FPS.
+    - Thus we will redisign a bit our emulator to work with Raylib...
 
 ## Links
 

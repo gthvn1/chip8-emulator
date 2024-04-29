@@ -17,14 +17,20 @@ impl Opcode {
         Self { value }
     }
 
+    /// Returns the value of the upcode as u16
     pub fn value(&self) -> u16 {
         self.value
     }
 
-    /// Returns the upper 4 bits of the opcode
-    pub fn upper4(&self) -> u8 {
-        let upper = self.value >> 12;
-        upper.try_into().unwrap()
+    /// Returns the value of the upcode as tuple of 4 bits
+    pub fn per_4bits(&self) -> (usize, usize, usize, usize) {
+        let v = self.value as usize;
+        (
+            (v & 0xF000) >> 12,
+            (v & 0x0F00) >> 8,
+            (v & 0x00F0) >> 4,
+            v & 0x000F,
+        )
     }
 
     pub fn nnn(&self) -> u16 {
@@ -35,21 +41,6 @@ impl Opcode {
         let v = self.value & 0xFF;
         v.try_into().unwrap()
     }
-
-    pub fn n(&self) -> u8 {
-        let v = self.value & 0xF;
-        v.try_into().unwrap()
-    }
-
-    pub fn x(&self) -> u8 {
-        let v = (self.value & 0x0F00) >> 8;
-        v.try_into().unwrap()
-    }
-
-    pub fn y(&self) -> u8 {
-        let v = (self.value & 0x00F0) >> 4;
-        v.try_into().unwrap()
-    }
 }
 
 #[cfg(test)]
@@ -57,15 +48,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_upper4() {
+    fn test_per_4bits() {
         let opcode = Opcode::new(0xF123);
-        assert_eq!(opcode.upper4(), 0xF);
+        assert_eq!(opcode.per_4bits(), (0xF, 0x1, 0x2, 0x3));
 
-        let opcode = Opcode::new(0x4123);
-        assert_eq!(opcode.upper4(), 0x4);
+        let opcode = Opcode::new(0x23);
+        assert_eq!(opcode.per_4bits(), (0x0, 0x0, 0x2, 0x3));
 
-        let opcode = Opcode::new(0x0123);
-        assert_eq!(opcode.upper4(), 0x0);
+        let opcode = Opcode::new(0x23F);
+        assert_eq!(opcode.per_4bits(), (0x0, 0x2, 0x3, 0xF));
     }
 
     #[test]
@@ -78,23 +69,5 @@ mod tests {
     fn test_nn() {
         let opcode = Opcode::new(0xF123);
         assert_eq!(opcode.nn(), 0x23);
-    }
-
-    #[test]
-    fn test_n() {
-        let opcode = Opcode::new(0xF123);
-        assert_eq!(opcode.n(), 0x3);
-    }
-
-    #[test]
-    fn test_x() {
-        let opcode = Opcode::new(0xF123);
-        assert_eq!(opcode.x(), 0x1);
-    }
-
-    #[test]
-    fn test_y() {
-        let opcode = Opcode::new(0xF123);
-        assert_eq!(opcode.y(), 0x2);
     }
 }

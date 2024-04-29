@@ -189,7 +189,7 @@ impl Chip8 {
     /// Emulate the instruction at program counter.
     /// Currently we are returning false for opcode that are not yet emulated
     /// but it is for testing.
-    pub fn emulate_one_insn(&mut self) -> Result<(), Chip8Error> {
+    pub fn emulate_insn(&mut self) -> Result<(), Chip8Error> {
         let opcode = Opcode::new(u16::from_be_bytes(
             self.mem[self.pc..self.pc + OPCODE_SIZE].try_into().unwrap(),
         ));
@@ -198,32 +198,31 @@ impl Chip8 {
 
         self.pc += OPCODE_SIZE;
 
-        match opcode.upper4() {
-            0x0 => {
-                if opcode.value() == 0x00E0 {
-                    // clear screen
-                    self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
-                        .copy_from_slice(&[0; DISPLAY_SIZE]);
-                } else if opcode.value() == 0x00EE {
-                    // return from subroutine
-                    if self.sp == STACK_OFFSET {
-                        return Err(Chip8Error::StackUnderflow);
-                    }
-
-                    // Read PC from the top of the stack
-                    let pc_hi = self.mem[self.sp] as usize;
-                    let pc_low = self.mem[self.sp + 1] as usize;
-
-                    self.pc = (pc_hi << 8) | pc_low;
-
-                    // Decrement the stack pointer
-                    self.sp -= 2;
-                } else {
-                    return Err(Chip8Error::NotImplemented(opcode));
-                }
+        match opcode.per_4bits() {
+            // clear screen
+            (0x0, 0x0, 0xE, 0x0) => {
+                self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+                    .copy_from_slice(&[0; DISPLAY_SIZE]);
             }
-            0x1 => self.pc = opcode.nnn() as usize,
-            0x2 => {
+            // return from subroutine
+            (0x0, 0x0, 0xE, 0xE) => {
+                if self.sp == STACK_OFFSET {
+                    return Err(Chip8Error::StackUnderflow);
+                }
+
+                // Read PC from the top of the stack
+                let pc_hi = self.mem[self.sp] as usize;
+                let pc_low = self.mem[self.sp + 1] as usize;
+
+                self.pc = (pc_hi << 8) | pc_low;
+
+                // Decrement the stack pointer
+                self.sp -= 2;
+            }
+            // Jump to addr
+            (0x1, _, _, _) => self.pc = opcode.nnn() as usize,
+            // Call addr
+            (0x2, _, _, _) => {
                 self.sp += 2; // Increment stack pointer
                 if self.sp >= STACK_OFFSET + STACK_SIZE {
                     return Err(Chip8Error::StackOverflow);
@@ -239,40 +238,32 @@ impl Chip8 {
                 // Set the new PC
                 self.pc = opcode.nnn() as usize;
             }
-            0x3 => return Err(Chip8Error::NotImplemented(opcode)),
-            0x4 => return Err(Chip8Error::NotImplemented(opcode)),
-            0x5 => return Err(Chip8Error::NotImplemented(opcode)),
-            0x6 => {
-                let idx = opcode.x() as usize;
-                if idx >= VREGS_SIZE {
+            // LD Vx, byte
+            (0x6, x, _, _) => {
+                if x >= VREGS_SIZE {
                     return Err(Chip8Error::VregsOverflow);
                 }
-                self.vregs[idx] = opcode.nn();
+                self.vregs[x] = opcode.nn();
             }
-            0x7 => {
-                let idx = opcode.x() as usize;
-                if idx >= VREGS_SIZE {
+            // ADD Vx, byte
+            (0x7, x, _, _) => {
+                if x >= VREGS_SIZE {
                     return Err(Chip8Error::VregsOverflow);
                 }
-                self.vregs[idx] += opcode.nn();
+                self.vregs[x] += opcode.nn();
             }
-            0x8 => return Err(Chip8Error::NotImplemented(opcode)),
-            0x9 => return Err(Chip8Error::NotImplemented(opcode)),
-            0xA => self.i = opcode.nnn(),
-            0xB => return Err(Chip8Error::NotImplemented(opcode)),
-            0xC => return Err(Chip8Error::NotImplemented(opcode)),
-            0xD => {
+            // LD I, addr
+            (0xA, _, _, _) => self.i = opcode.nnn(),
+            // DRAW Vx, Vy, nibble
+            (0xD, x, y, n) => {
                 // Draw a sprite 8xN at coordinate (VX, VY)
                 // VX and VY are in pixels
-                let x = opcode.x() as usize;
-                let y = opcode.y() as usize;
                 if x >= VREGS_SIZE || y >= VREGS_SIZE {
                     return Err(Chip8Error::VregsOverflow);
                 }
 
-                let vx = self.vregs[opcode.x() as usize] as usize;
-                let vy = self.vregs[opcode.y() as usize] as usize;
-                let n = opcode.n() as usize;
+                let vx = self.vregs[x] as usize;
+                let vy = self.vregs[y] as usize;
 
                 log::debug!("Draw a 8x{n} sprite at ({vx}, {vy})");
 
@@ -305,44 +296,41 @@ impl Chip8 {
                 // Update the real framebuffer
                 self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
             }
-            0xE => return Err(Chip8Error::NotImplemented(opcode)),
-            0xF => match opcode.nn() {
-                0x29 => {
-                    // I is set to the location of the hexadecimal sprite corresponding to the
-                    // value of Vx
-                    let x = opcode.x() as usize;
-                    if x >= VREGS_SIZE {
-                        return Err(Chip8Error::VregsOverflow);
-                    }
-
-                    let vx = self.vregs[x] as u16;
-                    // There are 16 hexadecimal sprites from 0 to F.
-                    if vx >= 16 as u16 {
-                        return Err(Chip8Error::UndefinedHexadecimal(vx as usize));
-                    }
-
-                    self.i = FONTS_OFFSET as u16 + FONTS_HEIGHT as u16 * vx;
+            // LD F, Vx
+            (0xF, x, 0x2, 0x9) => {
+                // I is set to the location of the hexadecimal sprite corresponding to the
+                // value of Vx
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
                 }
-                0x33 => {
-                    let vx = self.vregs[opcode.x() as usize];
-                    let idx = self.i as usize;
-                    self.mem[idx] = (vx / 100) % 10; // hundreds digit
-                    self.mem[idx + 1] = (vx / 10) % 10; // tens digit
-                    self.mem[idx + 2] = vx % 10; // ones digit
-                }
-                0x65 => {
-                    // Set V0 to Vx from memory starting at location i
-                    let idx = self.i as usize;
 
-                    for i in 0..16 {
-                        self.vregs[i] = self.mem[idx + i];
-                    }
+                let vx = self.vregs[x] as u16;
+                // There are 16 hexadecimal sprites from 0 to F.
+                if vx >= 16_u16 {
+                    return Err(Chip8Error::UndefinedHexadecimal(vx as usize));
                 }
-                _ => return Err(Chip8Error::NotImplemented(opcode)),
-            },
-            _ => {
-                return Err(Chip8Error::UnknownOpcode(opcode));
+
+                self.i = FONTS_OFFSET as u16 + FONTS_HEIGHT as u16 * vx;
             }
+            // LD B, Vx
+            (0xF, x, 0x3, 0x3) => {
+                let vx = self.vregs[x];
+                let idx = self.i as usize;
+                self.mem[idx] = (vx / 100) % 10; // hundreds digit
+                self.mem[idx + 1] = (vx / 10) % 10; // tens digit
+                self.mem[idx + 2] = vx % 10; // ones digit
+            }
+            // LD Vx, [I]
+            (0xF, _, 0x6, 0x5) => {
+                // Set V0 to Vx from memory starting at location i
+                // TODO: check the range of i ?
+                let idx = self.i as usize;
+
+                for x in 0..16 {
+                    self.vregs[x] = self.mem[idx + x];
+                }
+            }
+            _ => return Err(Chip8Error::NotImplemented(opcode)),
         };
 
         Ok(())
@@ -350,7 +338,7 @@ impl Chip8 {
 
     pub fn run(&mut self) {
         loop {
-            match self.emulate_one_insn() {
+            match self.emulate_insn() {
                 Err(e) => {
                     log::error!("{e}");
                     break;
