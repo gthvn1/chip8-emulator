@@ -16,6 +16,8 @@
 - Next to implement for pong is `8xy?` serie.
 
 ## Links
+- [Awesome CHIP-8](https://chip-8.github.io/links/)
+- [Writing CHIP-8 emulator in C](https://multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/)
 - [Chip8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
 - [Timendus Chip8 test suite](https://github.com/Timendus/chip8-test-suite)
 - [Chip8 emulator on wikipedia](https://en.wikipedia.org/wiki/CHIP-8)
