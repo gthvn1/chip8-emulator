@@ -61,6 +61,8 @@ const DISPLAY_SIZE: usize = 256;
 const VREGS_SIZE: usize = 16;
 /// Opcode is 2 bytes
 const OPCODE_SIZE: usize = 2;
+/// Keyboard has 16 values from 0 to F
+const KEYBOARD_SIZE: usize = 16;
 
 pub enum Chip8Error {
     NotImplemented(opcode::Opcode),
@@ -69,6 +71,7 @@ pub enum Chip8Error {
     StackUnderflow,
     VregsOverflow,
     MemoryFull,
+    WrongKey,
     UndefinedHexadecimal(usize),
 }
 
@@ -81,6 +84,7 @@ impl fmt::Display for Chip8Error {
             Chip8Error::StackUnderflow => write!(f, "Stack underflow detected"),
             Chip8Error::VregsOverflow => write!(f, "Vregs overflow detected"),
             Chip8Error::MemoryFull => write!(f, "Memory is full"),
+            Chip8Error::WrongKey => write!(f, "Key is not valid"),
             Chip8Error::UndefinedHexadecimal(v) => {
                 write!(f, "Hexadecimal error: Expected a value under 16, got {v}")
             }
@@ -109,6 +113,8 @@ pub struct Chip8 {
     delay_timer: u16,
     // sound timer
     sound_timer: u16,
+    // Keyboard status, true means key is pressed
+    keyboard: [bool; KEYBOARD_SIZE],
 }
 
 impl Default for Chip8 {
@@ -127,6 +133,7 @@ impl Chip8 {
             i: 0,
             delay_timer: 0,
             sound_timer: 0,
+            keyboard: [false; KEYBOARD_SIZE],
         }
     }
 
@@ -253,10 +260,10 @@ impl Chip8 {
             }
             // SE Vx, byte
             (0x3, x, _, _) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                if self.vregs[x] == opcode.nn() {
+                let mut vx = 0;
+                self.check_vregs(x, &mut vx)?;
+
+                if vx as u8 == opcode.nn() {
                     // Skip the next instruction
                     self.pc += 2;
                 }
@@ -282,6 +289,7 @@ impl Chip8 {
                 if x >= VREGS_SIZE {
                     return Err(Chip8Error::VregsOverflow);
                 }
+
                 let rand = unsafe {
                     let mut r = 0_u16;
                     if core::arch::x86_64::_rdrand16_step(&mut r) == 1 {
@@ -296,12 +304,11 @@ impl Chip8 {
             (0xD, x, y, n) => {
                 // Draw a sprite 8xN at coordinate (VX, VY)
                 // VX and VY are in pixels
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+                let mut vx = 0;
+                let mut vy = 0;
 
-                let vx = self.vregs[x] as usize;
-                let vy = self.vregs[y] as usize;
+                self.check_vregs(x, &mut vx)?;
+                self.check_vregs(y, &mut vy)?;
 
                 log::debug!("Draw a 8x{n} sprite at ({vx}, {vy})");
 
@@ -333,6 +340,33 @@ impl Chip8 {
 
                 // Update the real framebuffer
                 self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
+            }
+            // SKP Vx
+            (0xE, x, 0x9, 0xE) => {
+                let mut key = 0;
+                self.check_vregs(x, &mut key)?;
+
+                if key >= KEYBOARD_SIZE {
+                    return Err(Chip8Error::WrongKey);
+                }
+
+                if self.keyboard[key] {
+                    self.pc += 2;
+                }
+            }
+            // SKNP Vx
+            (0xE, x, 0xA, 0x1) => {
+                // skip next instruction if key is NOT pressed
+                let mut key = 0;
+                self.check_vregs(x, &mut key)?;
+
+                if key >= KEYBOARD_SIZE {
+                    return Err(Chip8Error::WrongKey);
+                }
+
+                if !self.keyboard[key] {
+                    self.pc += 2;
+                }
             }
             // LD Vx, DT
             (0xF, x, 0x0, 0x7) => {
@@ -413,6 +447,26 @@ impl Chip8 {
             print!("{byte:#04x} ");
         }
         println!();
+    }
+
+    pub fn reset_keyboard(&mut self) {
+        self.keyboard = [false; KEYBOARD_SIZE];
+    }
+
+    pub fn set_key(&mut self, key: usize, pressed: bool) {
+        if key < KEYBOARD_SIZE {
+            self.keyboard[key] = pressed;
+            log::info!("{key} pressed");
+        }
+    }
+
+    pub fn check_vregs(&self, src: usize, dst: &mut usize) -> Result<(), Chip8Error> {
+        if src >= VREGS_SIZE {
+            return Err(Chip8Error::VregsOverflow);
+        }
+
+        *dst = self.vregs[src] as usize;
+        Ok(())
     }
 }
 

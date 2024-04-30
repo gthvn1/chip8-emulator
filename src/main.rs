@@ -4,7 +4,7 @@ use std::process::exit;
 
 use chip8_emulator::raylib_bindings::{
     begin_drawing, clear_background, close_window, color, draw_rectangle, end_drawing, init_window,
-    set_target_fps, window_should_close,
+    is_key_pressed, keys, set_target_fps, window_should_close,
 };
 
 const RESOLUTION: (i32, i32) = (64, 32);
@@ -41,6 +41,60 @@ fn main() {
     // Detect window close button or ESC key
     {
         // Update
+        // Check key pressed
+        chip.reset_keyboard();
+
+        if is_key_pressed(keys::KEY_KP_0) {
+            chip.set_key(0, true)
+        };
+        if is_key_pressed(keys::KEY_KP_1) {
+            chip.set_key(1, true)
+        };
+        if is_key_pressed(keys::KEY_KP_2) {
+            chip.set_key(2, true)
+        };
+        if is_key_pressed(keys::KEY_KP_3) {
+            chip.set_key(3, true)
+        };
+        if is_key_pressed(keys::KEY_KP_4) {
+            chip.set_key(4, true)
+        };
+        if is_key_pressed(keys::KEY_KP_5) {
+            chip.set_key(5, true)
+        };
+        if is_key_pressed(keys::KEY_KP_6) {
+            chip.set_key(6, true)
+        };
+        if is_key_pressed(keys::KEY_KP_7) {
+            chip.set_key(7, true)
+        };
+        if is_key_pressed(keys::KEY_KP_8) {
+            chip.set_key(8, true)
+        };
+        if is_key_pressed(keys::KEY_KP_9) {
+            chip.set_key(9, true)
+        };
+        if is_key_pressed(keys::KEY_A) {
+            chip.set_key(10, true)
+        };
+        if is_key_pressed(keys::KEY_B) {
+            chip.set_key(11, true)
+        };
+        if is_key_pressed(keys::KEY_C) {
+            chip.set_key(12, true)
+        };
+        if is_key_pressed(keys::KEY_D) {
+            chip.set_key(13, true)
+        };
+        if is_key_pressed(keys::KEY_E) {
+            chip.set_key(14, true)
+        };
+        if is_key_pressed(keys::KEY_F) {
+            chip.set_key(15, true)
+        };
+
+        // Step to next instruction
+        // NOTE: Delay and Sound timer are updated by step()
         if let Err(e) = chip.step() {
             log::error!("{e}");
             break;
