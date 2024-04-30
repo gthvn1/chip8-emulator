@@ -5,6 +5,8 @@
 - Now print Timendus logo for testing instead of IBM logo
 - Implement 00EE - Return from subroutine
 - Implement 2NNN - CALL addr
+- Implement 3XKK - SE Vx, byte
+- Implement FX07 - LD Vx, DT
 - Implement FX15 - LD DT, Vx
 - Implement FX18 - LD ST, Vx
 - Implement FX29 - LD F, Vx

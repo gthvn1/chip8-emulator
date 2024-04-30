@@ -251,6 +251,16 @@ impl Chip8 {
                 // Set the new PC
                 self.pc = opcode.nnn() as usize;
             }
+            // SE Vx, byte
+            (0x3, x, _, _) => {
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                if self.vregs[x] == opcode.nn() {
+                    // Skip the next instruction
+                    self.pc += 2;
+                }
+            }
             // LD Vx, byte
             (0x6, x, _, _) => {
                 if x >= VREGS_SIZE {
@@ -309,7 +319,15 @@ impl Chip8 {
                 // Update the real framebuffer
                 self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
             }
-            //  LD DT, Vx
+            // LD Vx, DT
+            (0xF, x, 0x0, 0x7) => {
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                self.vregs[x] = self.delay_timer as u8;
+            }
+            // LD DT, Vx
             (0xF, x, 0x1, 0x5) => {
                 if x >= VREGS_SIZE {
                     return Err(Chip8Error::VregsOverflow);
@@ -318,7 +336,7 @@ impl Chip8 {
                 let vx = self.vregs[x] as u16;
                 self.delay_timer = vx;
             }
-            //  LD ST, Vx
+            // LD ST, Vx
             (0xF, x, 0x1, 0x8) => {
                 if x >= VREGS_SIZE {
                     return Err(Chip8Error::VregsOverflow);
