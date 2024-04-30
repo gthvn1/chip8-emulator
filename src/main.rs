@@ -53,69 +53,35 @@ fn main() {
 
         for (i, byte) in fb.iter().enumerate() {
             let v = i as i32;
-            let x: i32 = ((v * 8) % 64) * pixel_width;
+            let x: i32 = ((v * 8) % RESOLUTION.0) * pixel_width;
             let y: i32 = (v / 8) * pixel_height;
 
-            // We draw a 10x10 rectangle for each bit set to 1
+            // We draw a 20x20 rectangle for each bit set to 1
+            let pw = pixel_width;
+            let ph = pixel_height;
             if byte & 0x80 == 0x80 {
-                draw_rectangle(x, y, pixel_width, pixel_height, color::GREEN);
+                draw_rectangle(x, y, pw, ph, color::GREEN);
             }
             if byte & 0x40 == 0x40 {
-                draw_rectangle(x + pixel_width, y, pixel_width, pixel_height, color::GREEN);
+                draw_rectangle(x + pw, y, pw, ph, color::GREEN);
             }
             if byte & 0x20 == 0x20 {
-                draw_rectangle(
-                    x + 2 * pixel_width,
-                    y,
-                    pixel_width,
-                    pixel_height,
-                    color::GREEN,
-                );
+                draw_rectangle(x + 2 * pw, y, pw, ph, color::GREEN);
             }
             if byte & 0x10 == 0x10 {
-                draw_rectangle(
-                    x + 3 * pixel_width,
-                    y,
-                    pixel_width,
-                    pixel_height,
-                    color::GREEN,
-                );
+                draw_rectangle(x + 3 * pw, y, pw, ph, color::GREEN);
             }
             if byte & 0x8 == 0x8 {
-                draw_rectangle(
-                    x + 4 * pixel_width,
-                    y,
-                    pixel_width,
-                    pixel_height,
-                    color::GREEN,
-                );
+                draw_rectangle(x + 4 * pw, y, pw, ph, color::GREEN);
             }
             if byte & 0x4 == 0x4 {
-                draw_rectangle(
-                    x + 5 * pixel_width,
-                    y,
-                    pixel_width,
-                    pixel_height,
-                    color::GREEN,
-                );
+                draw_rectangle(x + 5 * pw, y, pw, ph, color::GREEN);
             }
             if byte & 0x2 == 0x2 {
-                draw_rectangle(
-                    x + 6 * pixel_width,
-                    y,
-                    pixel_width,
-                    pixel_height,
-                    color::GREEN,
-                );
+                draw_rectangle(x + 6 * pw, y, pw, ph, color::GREEN);
             }
             if byte & 0x1 == 0x1 {
-                draw_rectangle(
-                    x + 7 * pixel_width,
-                    y,
-                    pixel_width,
-                    pixel_height,
-                    color::GREEN,
-                );
+                draw_rectangle(x + 7 * pw, y, pw, ph, color::GREEN);
             }
         }
 
