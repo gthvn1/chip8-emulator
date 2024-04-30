@@ -8,6 +8,8 @@
 - To run it: `cargo run -- <ROMS>`
     - See Timendus link below for some testing ROMS
 - To debug prepend `RUST_LOG=debug`
+- We are using [hw randr](https://doc.rust-lang.org/core/arch/x86/fn._rdrand16_step.html)
+    - So it only works on x86_64
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
 
 ## Todo

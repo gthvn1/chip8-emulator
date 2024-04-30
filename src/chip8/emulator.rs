@@ -277,6 +277,21 @@ impl Chip8 {
             }
             // LD I, addr
             (0xA, _, _, _) => self.i = opcode.nnn(),
+            // Vx = rand() & NN
+            (0xC, x, _, _) => {
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                let rand = unsafe {
+                    let mut r = 0_u16;
+                    if core::arch::x86_64::_rdrand16_step(&mut r) == 1 {
+                        log::warn!("failed to generate random number");
+                    };
+
+                    r as u8
+                };
+                self.vregs[x] = rand & opcode.nn();
+            }
             // DRAW Vx, Vy, nibble
             (0xD, x, y, n) => {
                 // Draw a sprite 8xN at coordinate (VX, VY)
