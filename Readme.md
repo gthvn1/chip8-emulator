@@ -12,14 +12,8 @@
 
 ## Todo
 - Next to implement for pong is `FX15`
-- But before:
-    - `FX15` is dealing with timer. We don't have any notion of timer yet.
-    - So we need to introduce it and we need to change our code
-    - We will use another frontend than minibf that doesn't have any FPS.
-    - Thus we will redisign a bit our emulator to work with Raylib...
 
 ## Links
-
 - [Chip8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
 - [Timendus Chip8 test suite](https://github.com/Timendus/chip8-test-suite)
 - [Chip8 emulator on wikipedia](https://en.wikipedia.org/wiki/CHIP-8)
