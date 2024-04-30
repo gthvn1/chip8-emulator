@@ -1,4 +1,4 @@
-use chip8_emulator::chip8::Chip8;
+use chip8_emulator::chip8::emulator::Chip8;
 use std::env;
 use std::process::exit;
 
