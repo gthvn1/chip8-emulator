@@ -174,6 +174,11 @@ impl Chip8 {
         Ok(())
     }
 
+    /// Return a reference to memory related to display
+    pub fn get_framebuffer(&self) -> &[u8] {
+        &self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+    }
+
     /// Return a copy of memory related to display
     pub fn get_copy_of_framebuffer(&self) -> Vec<u8> {
         let mut buf = vec![0; DISPLAY_SIZE];

@@ -30,7 +30,8 @@
 
 ### New ones with Raylib
 
-Coming soon...
+#### Timendus splash screen
+![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/timendus_raylib.png)
 
 ### Old ones using minibf
 

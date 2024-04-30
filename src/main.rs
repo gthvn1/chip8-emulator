@@ -3,8 +3,8 @@ use std::env;
 use std::process::exit;
 
 use chip8_emulator::raylib_bindings::{
-    begin_drawing, clear_background, close_window, color, end_drawing, init_window, set_target_fps,
-    window_should_close,
+    begin_drawing, clear_background, close_window, color, draw_rectangle, end_drawing, init_window,
+    set_target_fps, window_should_close,
 };
 
 const RESOLUTION: (i32, i32) = (64, 32);
@@ -23,11 +23,11 @@ fn main() {
     let filename = &a[1];
     log::info!("Emulating {filename}");
 
-    let pixel_width = 10;
-    let pixel_height = 10;
+    let pixel_width = 10_i32;
+    let pixel_height = 10_i32;
 
-    let screen_width = RESOLUTION.0 * pixel_width;
-    let screen_height = RESOLUTION.1 * pixel_height;
+    let screen_width: i32 = RESOLUTION.0 * pixel_width;
+    let screen_height: i32 = RESOLUTION.1 * pixel_height;
 
     let mut chip = Chip8::default();
     chip.load(filename).unwrap();
@@ -46,10 +46,41 @@ fn main() {
         }
 
         begin_drawing();
-        clear_background(color::RAYWHITE);
+        clear_background(color::BLACK);
 
-        // TODO: display the framebuffer
-        let _ = chip.get_copy_of_framebuffer();
+        let fb = chip.get_framebuffer();
+
+        for (i, byte) in fb.iter().enumerate() {
+            let v = i as i32;
+            let x: i32 = ((v * 8) % 64) * 10;
+            let y: i32 = (v / 8) * 10;
+
+            // We draw a 10x10 rectangle for each bit set to 1
+            if byte & 0x80 == 0x80 {
+                draw_rectangle(x, y, pixel_width, pixel_height, color::GREEN);
+            }
+            if byte & 0x40 == 0x40 {
+                draw_rectangle(x + 10, y, pixel_width, pixel_height, color::GREEN);
+            }
+            if byte & 0x20 == 0x20 {
+                draw_rectangle(x + 20, y, pixel_width, pixel_height, color::GREEN);
+            }
+            if byte & 0x10 == 0x10 {
+                draw_rectangle(x + 30, y, pixel_width, pixel_height, color::GREEN);
+            }
+            if byte & 0x8 == 0x8 {
+                draw_rectangle(x + 40, y, pixel_width, pixel_height, color::GREEN);
+            }
+            if byte & 0x4 == 0x4 {
+                draw_rectangle(x + 50, y, pixel_width, pixel_height, color::GREEN);
+            }
+            if byte & 0x2 == 0x2 {
+                draw_rectangle(x + 60, y, pixel_width, pixel_height, color::GREEN);
+            }
+            if byte & 0x1 == 0x1 {
+                draw_rectangle(x + 70, y, pixel_width, pixel_height, color::GREEN);
+            }
+        }
 
         end_drawing();
     }
