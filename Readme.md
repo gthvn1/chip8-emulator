@@ -11,7 +11,7 @@
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
 
 ## Todo
-- Next to implement for pong is `FX15`
+- Next to implement for pong is `FX07`
 
 ## Links
 - [Chip8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)

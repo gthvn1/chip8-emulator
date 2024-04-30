@@ -105,6 +105,10 @@ pub struct Chip8 {
     vregs: [u8; VREGS_SIZE],
     /// 16-bit register for memory address
     i: u16,
+    // delay timer
+    delay_timer: u16,
+    // sound timer
+    sound_timer: u16,
 }
 
 impl Default for Chip8 {
@@ -121,6 +125,8 @@ impl Chip8 {
             sp: STACK_OFFSET,
             vregs: [0; VREGS_SIZE],
             i: 0,
+            delay_timer: 0,
+            sound_timer: 0,
         }
     }
 
@@ -195,6 +201,15 @@ impl Chip8 {
         log::debug!("pc = {:#06x}, opcode = {}", self.pc, opcode);
 
         self.pc += OPCODE_SIZE;
+
+        // The emulate insn is called at 60 FPS so we can update timer here
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+
+        if self.sound_timer > 0 {
+            self.delay_timer -= 1;
+        }
 
         match opcode.per_4bits() {
             // clear screen
@@ -293,6 +308,24 @@ impl Chip8 {
 
                 // Update the real framebuffer
                 self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
+            }
+            //  LD DT, Vx
+            (0xF, x, 0x1, 0x5) => {
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                let vx = self.vregs[x] as u16;
+                self.delay_timer = vx;
+            }
+            //  LD ST, Vx
+            (0xF, x, 0x1, 0x8) => {
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                let vx = self.vregs[x] as u16;
+                self.sound_timer = vx;
             }
             // LD F, Vx
             (0xF, x, 0x2, 0x9) => {
