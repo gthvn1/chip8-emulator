@@ -1,5 +1,9 @@
 # Changelog
 
+## 2024-05-01
+- Implement all remaining instructions
+- Simplify opcode and use simple u16.
+
 ## 2024-04-27
 - Change license to be GPL 3.0
 - Now print Timendus logo for testing instead of IBM logo

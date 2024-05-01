@@ -13,7 +13,8 @@
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
 
 ## Todo
-- Next to implement for pong is `4602`...
+- Pass [corax](https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file#corax-opcode-test) test and play pong
+- Currently we are stuck at Fx55...
 
 ## Links
 - [Awesome CHIP-8](https://chip-8.github.io/links/)
