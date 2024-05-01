@@ -204,12 +204,12 @@ impl Chip8 {
 
         self.pc += OPCODE_SIZE;
 
-        // The emulate insn is called at 60 FPS so we can update timer here
         if self.delay_timer > 0 {
             self.delay_timer -= 1;
         }
 
         if self.sound_timer > 0 {
+            // TODO: emit a sound if not equal to 0
             self.sound_timer -= 1;
         }
 
@@ -240,7 +240,6 @@ impl Chip8 {
             0x2000 => {
                 // Save the current PC
                 self.sp.push(self.pc);
-
                 // Set the new PC
                 self.pc = (opcode & 0xFFF) as usize;
             }
@@ -441,6 +440,7 @@ impl Chip8 {
                         let vx = self.vregs[x] as usize;
 
                         if self.keyboard[vx] {
+                            log::info!("{vx} is pressed");
                             self.pc += OPCODE_SIZE;
                         }
                     }
@@ -541,7 +541,6 @@ impl Chip8 {
     }
 
     pub fn set_key(&mut self, key: usize, pressed: bool) {
-        log::info!("set key called with {key} {pressed}");
         if key < KEYBOARD_SIZE {
             self.keyboard[key] = pressed;
             log::info!("{key} pressed");
