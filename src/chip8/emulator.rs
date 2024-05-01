@@ -55,8 +55,12 @@ const STACK_OFFSET: usize = 0x0EA0;
 const STACK_SIZE: usize = 96;
 /// Display offset
 const DISPLAY_OFFSET: usize = 0xF00;
+/// Display width in pixels
+const DISPLAY_WIDTH: usize = 64;
+/// Display height in pixels
+const DISPLAY_HEIGHT: usize = 32;
 /// Display size is 256 bytes
-const DISPLAY_SIZE: usize = 256;
+const DISPLAY_SIZE: usize = (DISPLAY_WIDTH * DISPLAY_HEIGHT) / 8;
 /// 16 Data registers named V0 to VF
 const VREGS_SIZE: usize = 16;
 /// Opcode is 2 bytes
@@ -315,31 +319,35 @@ impl Chip8 {
                 let sprite = &self.mem[self.i as usize..(self.i as usize + n)];
                 log::debug!("Sprite is {sprite:?}");
 
-                // We have 8 pixels per line
                 self.vregs[0xF] = 0; // Will be set if a pixel is set from set to unset
 
                 // We need to use a copy of the framebuffer because sprite has an immutable
                 // borrow on self.mem.
                 let mut fb_copy = self.get_copy_of_framebuffer();
+                let fb_clone = fb_copy.clone(); // Keep a copy to check if a pixel has been set
+
                 for (idx, pixels) in sprite.iter().enumerate() {
                     log::debug!("  idx {idx}, pixels {pixels}");
-                    for bit in 0..8 {
-                        let shifted = 0b10000000 >> bit;
-                        if pixels & shifted == shifted {
-                            // when pixel is set we don't need to check if it has been flipped
-                            set_pixel(&mut fb_copy, vx as u8 + bit as u8, vy as u8 + idx as u8);
-                        } else {
-                            // but if unset we need to check if it has been flipped to update vregs
-                            if unset_pixel(&mut fb_copy, vx as u8 + bit as u8, vy as u8 + idx as u8)
-                            {
-                                self.vregs[0xF] = 1;
-                            }
-                        }
+                    let start_idx = vx / 8;
+                    let end_idx = (vx + 7) / 8;
+                    let offset = vx % 8;
+
+                    if start_idx == end_idx {
+                        // It is aligned so easy
+                        fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels;
+                    } else {
+                        // It is not aligned
+                        fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels >> offset;
+                        fb_copy[end_idx + ((vy + idx) * 8)] ^= pixels << (8 - offset);
                     }
                 }
 
-                // Update the real framebuffer
-                self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
+                if fb_clone != fb_copy {
+                    self.vregs[0xF] = 1;
+                    // Update the real framebuffer
+                    self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+                        .copy_from_slice(&fb_copy);
+                }
             }
             // SKP Vx
             (0xE, x, 0x9, 0xE) => {
@@ -467,37 +475,5 @@ impl Chip8 {
 
         *dst = self.vregs[src] as usize;
         Ok(())
-    }
-}
-
-/// Set bit to 1 at x, y and returns true if pixel has been flipped.
-pub fn set_pixel(v: &mut [u8], x: u8, y: u8) -> bool {
-    let byte = x / 8 + y * 8;
-    let bit = x % 8;
-    let shifted = 1 << (7 - bit);
-    let read_byte = v[byte as usize];
-
-    // if bit is not already set then set it and returns true
-    // because we flip it
-    if read_byte & shifted == 0 {
-        v[byte as usize] |= shifted;
-        true
-    } else {
-        false
-    }
-}
-
-/// Set bit to 0 at x, y and returns true if pixel has been flipped.
-pub fn unset_pixel(v: &mut [u8], x: u8, y: u8) -> bool {
-    let byte = x / 8 + y * 8;
-    let bit = x % 8;
-    let shifted = 1 << (7 - bit);
-    let read_byte = v[byte as usize];
-
-    if read_byte & shifted == 1 {
-        v[byte as usize] &= !shifted;
-        true
-    } else {
-        false
     }
 }
