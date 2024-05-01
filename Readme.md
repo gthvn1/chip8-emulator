@@ -17,7 +17,8 @@
 ## Todo
 - [x] pass corax test
 - [ ] play pong
-    - currently it doesn't work
+    - display is white/black instead of black/white
+    - keyboard is not working
 
 ## Links
 - [Awesome CHIP-8](https://chip-8.github.io/links/)
