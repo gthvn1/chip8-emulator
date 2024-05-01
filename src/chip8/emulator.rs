@@ -324,25 +324,29 @@ impl Chip8 {
                 // We need to use a copy of the framebuffer because sprite has an immutable
                 // borrow on self.mem.
                 let mut fb_copy = self.get_copy_of_framebuffer();
-                let fb_clone = fb_copy.clone(); // Keep a copy to check if a pixel has been set
+                let fb_origin = fb_copy.clone(); // Keep a copy to check if a pixel has been set
 
                 for (idx, pixels) in sprite.iter().enumerate() {
                     log::debug!("  idx {idx}, pixels {pixels}");
+                    // We need to find in which coordinate the pixel falls. Pixel 0-7 are in first
+                    // byte, 8-15 in the second and so on.
                     let start_idx = vx / 8;
                     let end_idx = (vx + 7) / 8;
                     let offset = vx % 8;
 
-                    if start_idx == end_idx {
-                        // It is aligned so easy
+                    if offset == 0 {
+                        // It is aligned so easy because 8 bits fall into the same bucket in frame
+                        // buffer.
                         fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels;
                     } else {
-                        // It is not aligned
+                        // It is not aligned so we need to shift pixels at the right place.
                         fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels >> offset;
                         fb_copy[end_idx + ((vy + idx) * 8)] ^= pixels << (8 - offset);
                     }
                 }
 
-                if fb_clone != fb_copy {
+                if fb_origin != fb_copy {
+                    // At least one bit has been set
                     self.vregs[0xF] = 1;
                     // Update the real framebuffer
                     self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
