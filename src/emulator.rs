@@ -268,12 +268,17 @@ impl Chip8 {
             }
             // SE Vx, Vy
             0x5000 => {
-                let x = ((opcode & 0x0F00) >> 8) as usize;
-                let y = ((opcode & 0x00F0) >> 4) as usize;
+                match opcode & 0xF {
+                    0x0 => {
+                        let x = ((opcode & 0x0F00) >> 8) as usize;
+                        let y = ((opcode & 0x00F0) >> 4) as usize;
 
-                // Skip next instruction if Vx == Vy
-                if self.vregs[x] == self.vregs[y] {
-                    self.pc += OPCODE_SIZE;
+                        // Skip next instruction if Vx == Vy
+                        if self.vregs[x] == self.vregs[y] {
+                            self.pc += OPCODE_SIZE;
+                        }
+                    }
+                    _ => return Err(Chip8Error::UnknownOpcode(opcode)),
                 }
             }
             // LD Vx, byte
@@ -331,24 +336,29 @@ impl Chip8 {
                     // SUBN Vx, Vy
                     0x7 => {
                         self.vregs[0xF] = if self.vregs[y] > self.vregs[x] { 1 } else { 0 };
-                        self.vregs[x] = self.vregs[y] - self.vregs[x];
+                        self.vregs[x] = (self.vregs[y] as isize - self.vregs[x] as isize) as u8;
                     }
                     // SHL Vx {, Vy}
                     0xE => {
                         self.vregs[0xF] = if self.vregs[x] & 0x80 == 0x80 { 1 } else { 0 };
-                        self.vregs[x] *= 2;
+                        self.vregs[x] = (self.vregs[x] as usize * 2) as u8;
                     }
                     _ => return Err(Chip8Error::UnknownOpcode(opcode)),
                 }
             }
             // SNE Vx, Vy
             0x9000 => {
-                let x = ((opcode & 0x0F00) >> 8) as usize;
-                let y = ((opcode & 0x00F0) >> 4) as usize;
+                match opcode & 0xF {
+                    0x0 => {
+                        let x = ((opcode & 0x0F00) >> 8) as usize;
+                        let y = ((opcode & 0x00F0) >> 4) as usize;
 
-                // Skip next instruction if Vx != Vy
-                if self.vregs[x] != self.vregs[y] {
-                    self.pc += OPCODE_SIZE;
+                        // Skip next instruction if Vx != Vy
+                        if self.vregs[x] != self.vregs[y] {
+                            self.pc += OPCODE_SIZE;
+                        }
+                    }
+                    _ => return Err(Chip8Error::UnknownOpcode(opcode)),
                 }
             }
             // LD I, addr
@@ -449,6 +459,10 @@ impl Chip8 {
                     // LD Vx, DT
                     0x07 => {
                         self.vregs[x] = self.delay_timer as u8;
+                    }
+                    // LD Vx, k
+                    0x0A => {
+                        todo!("Wait for a key press");
                     }
                     // LD DT, Vx
                     0x15 => {
