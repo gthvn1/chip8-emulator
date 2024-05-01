@@ -264,11 +264,21 @@ impl Chip8 {
             }
             // SE Vx, byte
             (0x3, x, _, _) => {
-                let mut vx = 0;
-                self.check_vregs(x, &mut vx)?;
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
 
-                if vx as u8 == opcode.nn() {
-                    // Skip the next instruction
+                if self.vregs[x] == opcode.nn() {
+                    self.pc += 2;
+                }
+            }
+            // SNE Vx, byte
+            (0x4, x, _, _) => {
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                if self.vregs[x] != opcode.nn() {
                     self.pc += 2;
                 }
             }

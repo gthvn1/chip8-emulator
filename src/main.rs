@@ -4,7 +4,7 @@ use std::process::exit;
 
 use chip8_emulator::raylib_bindings::{
     begin_drawing, clear_background, close_window, color, draw_rectangle, end_drawing, init_window,
-    is_key_pressed, keys, set_target_fps, window_should_close,
+    is_key_down, keys, set_target_fps, window_should_close,
 };
 
 const RESOLUTION: (i32, i32) = (64, 32);
@@ -44,52 +44,52 @@ fn main() {
         // Check key pressed
         chip.reset_keyboard();
 
-        if is_key_pressed(keys::KEY_KP_0) {
+        if is_key_down(keys::KEY_A) {
             chip.set_key(0, true)
         };
-        if is_key_pressed(keys::KEY_KP_1) {
+        if is_key_down(keys::KEY_Z) {
             chip.set_key(1, true)
         };
-        if is_key_pressed(keys::KEY_KP_2) {
+        if is_key_down(keys::KEY_E) {
             chip.set_key(2, true)
         };
-        if is_key_pressed(keys::KEY_KP_3) {
+        if is_key_down(keys::KEY_R) {
             chip.set_key(3, true)
         };
-        if is_key_pressed(keys::KEY_KP_4) {
+        if is_key_down(keys::KEY_T) {
             chip.set_key(4, true)
         };
-        if is_key_pressed(keys::KEY_KP_5) {
+        if is_key_down(keys::KEY_Q) {
             chip.set_key(5, true)
         };
-        if is_key_pressed(keys::KEY_KP_6) {
+        if is_key_down(keys::KEY_S) {
             chip.set_key(6, true)
         };
-        if is_key_pressed(keys::KEY_KP_7) {
+        if is_key_down(keys::KEY_D) {
             chip.set_key(7, true)
         };
-        if is_key_pressed(keys::KEY_KP_8) {
+        if is_key_down(keys::KEY_F) {
             chip.set_key(8, true)
         };
-        if is_key_pressed(keys::KEY_KP_9) {
+        if is_key_down(keys::KEY_G) {
             chip.set_key(9, true)
         };
-        if is_key_pressed(keys::KEY_A) {
+        if is_key_down(keys::KEY_W) {
             chip.set_key(10, true)
         };
-        if is_key_pressed(keys::KEY_B) {
+        if is_key_down(keys::KEY_X) {
             chip.set_key(11, true)
         };
-        if is_key_pressed(keys::KEY_C) {
+        if is_key_down(keys::KEY_C) {
             chip.set_key(12, true)
         };
-        if is_key_pressed(keys::KEY_D) {
+        if is_key_down(keys::KEY_V) {
             chip.set_key(13, true)
         };
-        if is_key_pressed(keys::KEY_E) {
+        if is_key_down(keys::KEY_B) {
             chip.set_key(14, true)
         };
-        if is_key_pressed(keys::KEY_F) {
+        if is_key_down(keys::KEY_N) {
             chip.set_key(15, true)
         };
 
@@ -106,9 +106,8 @@ fn main() {
         let fb = chip.get_framebuffer();
 
         for (i, byte) in fb.iter().enumerate() {
-            let v = i as i32;
-            let x: i32 = ((v * 8) % RESOLUTION.0) * pixel_width;
-            let y: i32 = (v / 8) * pixel_height;
+            let x: i32 = ((i as i32 * 8) % RESOLUTION.0) * pixel_width;
+            let y: i32 = (i as i32 / 8) * pixel_height;
 
             // We draw a 20x20 rectangle for each bit set to 1
             let pw = pixel_width;
