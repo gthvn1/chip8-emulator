@@ -398,7 +398,6 @@ impl Chip8 {
                 // We need to use a copy of the framebuffer because sprite has an immutable
                 // borrow on self.mem.
                 let mut fb_copy = self.get_copy_of_framebuffer();
-                let fb_origin = fb_copy.clone(); // Keep a copy to check if a pixel has been set
 
                 for (idx, pixels) in sprite.iter().enumerate() {
                     log::debug!("  idx {idx}, pixels {pixels}");
@@ -414,21 +413,35 @@ impl Chip8 {
                         log::warn!("Cannot draw at ({vx}, {vy}) on chip8 that is 64x32");
                     } else if offset == 0 {
                         // It it's aligned it easy
-                        fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels;
+                        let before = fb_copy[index];
+                        fb_copy[index] ^= pixels;
+                        let after = fb_copy[index];
+
+                        if before & after != before {
+                            self.vregs[0xF] = 1;
+                        }
                     } else {
                         // It is not aligned so we need to shift pixels at the right place.
-                        fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels >> offset;
+                        let before = fb_copy[index];
+                        fb_copy[index] ^= pixels >> offset;
+                        let after = fb_copy[index];
+
+                        if before & after != before {
+                            self.vregs[0xF] = 1;
+                        }
+
+                        let before = fb_copy[end_idx + ((vy + idx) * 8)];
                         fb_copy[end_idx + ((vy + idx) * 8)] ^= pixels << (8 - offset);
+                        let after = fb_copy[end_idx + ((vy + idx) * 8)];
+
+                        if before & after != before {
+                            self.vregs[0xF] = 1;
+                        }
                     }
                 }
 
-                if fb_origin != fb_copy {
-                    // At least one bit has been set
-                    self.vregs[0xF] = 1;
-                    // Update the real framebuffer
-                    self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
-                        .copy_from_slice(&fb_copy);
-                }
+                // Update the real framebuffer
+                self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)].copy_from_slice(&fb_copy);
             }
             0xE000 => {
                 match opcode & 0xFF {
