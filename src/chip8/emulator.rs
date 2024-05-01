@@ -286,6 +286,87 @@ impl Chip8 {
                 }
                 self.vregs[x] += opcode.nn();
             }
+            // LD Vx, Vy
+            (0x8, x, y, 0x0) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                self.vregs[x] = self.vregs[y];
+            }
+            // OR Vx, Vy
+            (0x8, x, y, 0x1) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                self.vregs[x] |= self.vregs[y];
+            }
+            // AND Vx, Vy
+            (0x8, x, y, 0x2) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                self.vregs[x] &= self.vregs[y];
+            }
+            // XOR Vx, Vy
+            (0x8, x, y, 0x3) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                self.vregs[x] ^= self.vregs[y];
+            }
+            // ADD Vx, Vy
+            (0x8, x, y, 0x4) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                let sum = self.vregs[x] as usize + self.vregs[y] as usize;
+                self.vregs[0xF] = if sum > 255 { 1 } else { 0 };
+                self.vregs[x] = sum as u8;
+            }
+            // SUB Vx, Vy
+            (0x8, x, y, 0x5) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                self.vregs[0xF] = if self.vregs[x] > self.vregs[y] { 1 } else { 0 };
+                self.vregs[x] -= self.vregs[y];
+            }
+            // SHR Vx {, Vy}
+            (0x8, x, y, 0x6) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                self.vregs[0xF] = if self.vregs[x] & 0x1 == 0x1 { 1 } else { 0 };
+                self.vregs[x] /= 2;
+            }
+            // SUBN Vx, Vy
+            (0x8, x, y, 0x7) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                self.vregs[0xF] = if self.vregs[y] > self.vregs[x] { 1 } else { 0 };
+                self.vregs[x] = self.vregs[y] - self.vregs[x];
+            }
+            // SHL Vx {, Vy}
+            (0x8, x, y, 0xE) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+                self.vregs[0xF] = if self.vregs[x] & 0x80 == 0x80 { 1 } else { 0 };
+                self.vregs[x] *= 2;
+            }
+            // SNE Vx, Vy
+            (0x9, x, y, 0x0) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                if self.vregs[x] != self.vregs[y] {
+                    self.pc += 2;
+                }
+            }
             // LD I, addr
             (0xA, _, _, _) => self.i = opcode.nnn(),
             // Vx = rand() & NN

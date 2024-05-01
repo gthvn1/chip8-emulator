@@ -6,6 +6,8 @@
 - Implement 00EE - Return from subroutine
 - Implement 2NNN - CALL addr
 - Implement 3XKK - SE Vx, byte
+- Implement 8xyN serie
+- Implement 9xy0 - SNE Vx, Vy
 - Implement CXNN - RND Vx, byte
 - Implement FX07 - LD Vx, DT
 - Implement FX15 - LD DT, Vx

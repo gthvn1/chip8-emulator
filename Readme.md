@@ -13,7 +13,7 @@
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
 
 ## Todo
-- Next to implement for pong is `8xy?` serie.
+- Next to implement for pong is `4602`...
 
 ## Links
 - [Awesome CHIP-8](https://chip-8.github.io/links/)
