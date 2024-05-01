@@ -412,15 +412,13 @@ impl Chip8 {
                     if index > 255 {
                         // Skip if index are wrong
                         log::warn!("Cannot draw at ({vx}, {vy}) on chip8 that is 64x32");
+                    } else if offset == 0 {
+                        // It it's aligned it easy
+                        fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels;
                     } else {
-                        if offset == 0 {
-                            // It it's aligned it easy
-                            fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels;
-                        } else {
-                            // It is not aligned so we need to shift pixels at the right place.
-                            fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels >> offset;
-                            fb_copy[end_idx + ((vy + idx) * 8)] ^= pixels << (8 - offset);
-                        }
+                        // It is not aligned so we need to shift pixels at the right place.
+                        fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels >> offset;
+                        fb_copy[end_idx + ((vy + idx) * 8)] ^= pixels << (8 - offset);
                     }
                 }
 

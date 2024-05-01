@@ -4,7 +4,7 @@ use std::process::exit;
 
 use chip8_emulator::raylib_bindings::{
     begin_drawing, clear_background, close_window, color, draw_rectangle, end_drawing, init_window,
-    is_key_pressed, keys, set_target_fps, window_should_close,
+    is_key_pressed, is_key_released, keys, set_target_fps, window_should_close,
 };
 
 const RESOLUTION: (i32, i32) = (64, 32);
@@ -37,66 +37,43 @@ fn main() {
 
     set_target_fps(360);
 
+    // Check key pressed
+    // Original layout
+    //  1	2	3	C
+    //  4	5	6	D
+    //  7	8	9	E
+    //  A	0	B	F
+    let keymap = [
+        keys::KEY_A,
+        keys::KEY_Z,
+        keys::KEY_E,
+        keys::KEY_R,
+        keys::KEY_T,
+        keys::KEY_Q,
+        keys::KEY_S,
+        keys::KEY_D,
+        keys::KEY_F,
+        keys::KEY_G,
+        keys::KEY_H,
+        keys::KEY_U,
+        keys::KEY_J,
+        keys::KEY_I,
+        keys::KEY_K,
+        keys::KEY_O,
+    ];
+
     while !window_should_close()
     // Detect window close button or ESC key
     {
-        // Update
-        // Check key pressed
-        // Original layout
-        //  1	2	3	C
-        //  4	5	6	D
-        //  7	8	9	E
-        //  A	0	B	F
-        chip.reset_keyboard();
-
-        if is_key_pressed(keys::KEY_A) {
-            chip.set_key(0, true)
-        };
-        if is_key_pressed(keys::KEY_Z) {
-            chip.set_key(1, true)
-        };
-        if is_key_pressed(keys::KEY_E) {
-            chip.set_key(2, true)
-        };
-        if is_key_pressed(keys::KEY_R) {
-            chip.set_key(3, true)
-        };
-        if is_key_pressed(keys::KEY_T) {
-            chip.set_key(4, true)
-        };
-        if is_key_pressed(keys::KEY_Q) {
-            chip.set_key(5, true)
-        };
-        if is_key_pressed(keys::KEY_S) {
-            chip.set_key(6, true)
-        };
-        if is_key_pressed(keys::KEY_D) {
-            chip.set_key(7, true)
-        };
-        if is_key_pressed(keys::KEY_F) {
-            chip.set_key(8, true)
-        };
-        if is_key_pressed(keys::KEY_G) {
-            chip.set_key(9, true)
-        };
-        if is_key_pressed(keys::KEY_W) {
-            chip.set_key(10, true)
-        };
-        if is_key_pressed(keys::KEY_X) {
-            chip.set_key(11, true)
-        };
-        if is_key_pressed(keys::KEY_C) {
-            chip.set_key(12, true)
-        };
-        if is_key_pressed(keys::KEY_V) {
-            chip.set_key(13, true)
-        };
-        if is_key_pressed(keys::KEY_B) {
-            chip.set_key(14, true)
-        };
-        if is_key_pressed(keys::KEY_N) {
-            chip.set_key(15, true)
-        };
+        // Update keyboard state
+        for (i, k) in keymap.iter().enumerate() {
+            if is_key_pressed(*k) {
+                chip.set_key(i, true)
+            }
+            if is_key_released(*k) {
+                chip.set_key(i, false)
+            }
+        }
 
         // Step to next instruction
         // NOTE: Delay and Sound timer are updated by step()

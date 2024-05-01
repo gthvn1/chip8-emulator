@@ -27,6 +27,7 @@ extern "C" {
     fn GetMouseWheelMove() -> c_float;
     fn InitWindow(w: c_int, h: c_int, title: *const c_char) -> c_void;
     fn IsKeyPressed(k: c_int) -> c_int;
+    fn IsKeyReleased(k: c_int) -> c_int;
     fn IsKeyDown(k: c_int) -> c_int;
     fn SetTargetFPS(fps: c_int) -> c_void;
     fn WindowShouldClose() -> c_int;
@@ -107,6 +108,10 @@ pub fn init_window(width: i32, height: i32, title: String) {
 
 pub fn is_key_pressed(key: i32) -> bool {
     unsafe { IsKeyPressed(key as c_int) != 0 }
+}
+
+pub fn is_key_released(key: i32) -> bool {
+    unsafe { IsKeyReleased(key as c_int) != 0 }
 }
 
 pub fn is_key_down(key: i32) -> bool {
