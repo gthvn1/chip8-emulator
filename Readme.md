@@ -17,16 +17,17 @@
 ## Todo
 - [x] pass corax test
 - [ ] play pong
-    - display is white/black instead of black/white
-    - keyboard is not working
+    - [ ] display is white/black instead of black/white
+    - [x] keyboard is ~~not~~ working
 
 ## Links
+- [Chip-8 ROMS Archive](https://johnearnest.github.io/chip8Archive/)
 - [Awesome CHIP-8](https://chip-8.github.io/links/)
 - [Writing CHIP-8 emulator in C](https://multigesture.net/articles/how-to-write-an-emulator-chip-8-interpreter/)
-- [Chip8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
-- [Timendus Chip8 test suite](https://github.com/Timendus/chip8-test-suite)
-- [Chip8 emulator on wikipedia](https://en.wikipedia.org/wiki/CHIP-8)
-- [Writing a Chip8 Emulator](http://craigthomas.ca/blog/2014/06/21/writing-a-chip-8-emulator-part-1/)
+- [Chip-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
+- [Timendus Chip-8 test suite](https://github.com/Timendus/chip8-test-suite)
+- [Chip-8 emulator on wikipedia](https://en.wikipedia.org/wiki/CHIP-8)
+- [Writing a Chip-8 Emulator](http://craigthomas.ca/blog/2014/06/21/writing-a-chip-8-emulator-part-1/)
 - [Inline emulator](https://chip-8.vercel.app/)
 
 ## Screenshots
