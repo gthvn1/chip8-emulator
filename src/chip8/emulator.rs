@@ -282,6 +282,16 @@ impl Chip8 {
                     self.pc += 2;
                 }
             }
+            // SE Vx, Vy
+            (0x5, x, y, 0x0) => {
+                if x >= VREGS_SIZE || y >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                if self.vregs[x] == self.vregs[y] {
+                    self.pc += 2;
+                }
+            }
             // LD Vx, byte
             (0x6, x, _, _) => {
                 if x >= VREGS_SIZE {
@@ -388,7 +398,7 @@ impl Chip8 {
 
                 let rand = unsafe {
                     let mut r = 0_u16;
-                    if core::arch::x86_64::_rdrand16_step(&mut r) == 1 {
+                    if core::arch::x86_64::_rdrand16_step(&mut r) == 0 {
                         log::warn!("failed to generate random number");
                     };
 
@@ -498,6 +508,14 @@ impl Chip8 {
                 let vx = self.vregs[x] as u16;
                 self.sound_timer = vx;
             }
+            // ADD I, Vx
+            (0xF, x, 0x1, 0xE) => {
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                self.i += self.vregs[x] as u16;
+            }
             // LD F, Vx
             (0xF, x, 0x2, 0x9) => {
                 // I is set to the location of the hexadecimal sprite corresponding to the
@@ -521,6 +539,16 @@ impl Chip8 {
                 self.mem[idx] = (vx / 100) % 10; // hundreds digit
                 self.mem[idx + 1] = (vx / 10) % 10; // tens digit
                 self.mem[idx + 2] = vx % 10; // ones digit
+            }
+            // LD [I], Vx
+            (0xF, x, 0x5, 0x5) => {
+                if x >= VREGS_SIZE {
+                    return Err(Chip8Error::VregsOverflow);
+                }
+
+                for i in 0..=x {
+                    self.vregs[i] = self.mem[self.i as usize + i];
+                }
             }
             // LD Vx, [I]
             (0xF, _, 0x6, 0x5) => {
@@ -558,6 +586,7 @@ impl Chip8 {
     }
 
     pub fn set_key(&mut self, key: usize, pressed: bool) {
+        log::info!("set key called with {key} {pressed}");
         if key < KEYBOARD_SIZE {
             self.keyboard[key] = pressed;
             log::info!("{key} pressed");
