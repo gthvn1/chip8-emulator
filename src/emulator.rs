@@ -64,7 +64,6 @@ const OPCODE_SIZE: usize = 2;
 const KEYBOARD_SIZE: usize = 16;
 
 pub enum Chip8Error {
-    NotImplemented(u16),
     UnknownOpcode(u16),
     UndefinedHexadecimal(u16),
     StackOverflow,
@@ -77,7 +76,6 @@ pub enum Chip8Error {
 impl fmt::Display for Chip8Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Chip8Error::NotImplemented(opcode) => write!(f, "Opcode <{opcode}> is not implemented"),
             Chip8Error::UnknownOpcode(opcode) => write!(f, "Opcode <{opcode}> is unknown"),
             Chip8Error::StackOverflow => write!(f, "Stack overflow detected"),
             Chip8Error::StackUnderflow => write!(f, "Stack underflow detected"),
@@ -411,14 +409,19 @@ impl Chip8 {
                     let end_idx = (vx + 7) / 8;
                     let offset = vx % 8;
 
-                    if offset == 0 {
-                        // It is aligned so easy because 8 bits fall into the same bucket in frame
-                        // buffer.
-                        fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels;
+                    let index = start_idx + ((vy + idx) * 8);
+                    if index > 255 {
+                        // Skip if index are wrong
+                        log::warn!("Cannot draw at ({vx}, {vy}) on chip8 that is 64x32");
                     } else {
-                        // It is not aligned so we need to shift pixels at the right place.
-                        fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels >> offset;
-                        fb_copy[end_idx + ((vy + idx) * 8)] ^= pixels << (8 - offset);
+                        if offset == 0 {
+                            // It it's aligned it easy
+                            fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels;
+                        } else {
+                            // It is not aligned so we need to shift pixels at the right place.
+                            fb_copy[start_idx + ((vy + idx) * 8)] ^= pixels >> offset;
+                            fb_copy[end_idx + ((vy + idx) * 8)] ^= pixels << (8 - offset);
+                        }
                     }
                 }
 
@@ -505,7 +508,6 @@ impl Chip8 {
                     // LD Vx, [I]
                     0x65 => {
                         // Set V0 to Vx from memory starting at location i
-                        // TODO: check the range of i ?
                         for x in 0..16 {
                             self.vregs[x] = self.mem[self.i as usize + x];
                         }
@@ -513,7 +515,7 @@ impl Chip8 {
                     _ => return Err(Chip8Error::UnknownOpcode(opcode)),
                 }
             }
-            _ => return Err(Chip8Error::NotImplemented(opcode)),
+            _ => return Err(Chip8Error::UnknownOpcode(opcode)),
         };
 
         Ok(())
