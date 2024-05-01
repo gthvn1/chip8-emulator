@@ -407,32 +407,34 @@ impl Chip8 {
                     let end_idx = (vx + 7) / 8;
                     let offset = vx % 8;
 
-                    let index = start_idx + ((vy + idx) * 8);
-                    if index > 255 {
+                    let start_byte = start_idx + ((vy + idx) * 8);
+                    let end_byte = end_idx + ((vy + idx) * 8);
+
+                    if end_byte > 255 {
                         // Skip if index are wrong
                         log::warn!("Cannot draw at ({vx}, {vy}) on chip8 that is 64x32");
                     } else if offset == 0 {
                         // It it's aligned it easy
-                        let before = fb_copy[index];
-                        fb_copy[index] ^= pixels;
-                        let after = fb_copy[index];
+                        let before = fb_copy[start_byte];
+                        fb_copy[start_byte] ^= pixels;
+                        let after = fb_copy[start_byte];
 
                         if before & after != before {
                             self.vregs[0xF] = 1;
                         }
                     } else {
                         // It is not aligned so we need to shift pixels at the right place.
-                        let before = fb_copy[index];
-                        fb_copy[index] ^= pixels >> offset;
-                        let after = fb_copy[index];
+                        let before = fb_copy[start_byte];
+                        fb_copy[start_byte] ^= pixels >> offset;
+                        let after = fb_copy[start_byte];
 
                         if before & after != before {
                             self.vregs[0xF] = 1;
                         }
 
-                        let before = fb_copy[end_idx + ((vy + idx) * 8)];
-                        fb_copy[end_idx + ((vy + idx) * 8)] ^= pixels << (8 - offset);
-                        let after = fb_copy[end_idx + ((vy + idx) * 8)];
+                        let before = fb_copy[end_byte];
+                        fb_copy[end_byte] ^= pixels << (8 - offset);
+                        let after = fb_copy[end_byte];
 
                         if before & after != before {
                             self.vregs[0xF] = 1;
