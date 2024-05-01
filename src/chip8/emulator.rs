@@ -34,7 +34,6 @@
 //!     - sprites are XOR'ed with corresponding screen pixels
 //! - A beeping sound is played when sound timer is nonzero.
 
-use crate::chip8::opcode;
 use log;
 use std::{fmt, fs::File, io::Read};
 
@@ -49,10 +48,6 @@ const FONTS_OFFSET: usize = 0x0;
 const _FONTS_WIDTH: usize = 8;
 const FONTS_HEIGHT: usize = 5;
 const FONTS_SIZE: usize = 80;
-/// Stack offset
-const STACK_OFFSET: usize = 0x0EA0;
-/// Stack size is 96 bytes
-const STACK_SIZE: usize = 96;
 /// Display offset
 const DISPLAY_OFFSET: usize = 0xF00;
 /// Display width in pixels
@@ -69,14 +64,14 @@ const OPCODE_SIZE: usize = 2;
 const KEYBOARD_SIZE: usize = 16;
 
 pub enum Chip8Error {
-    NotImplemented(opcode::Opcode),
-    UnknownOpcode(opcode::Opcode),
+    NotImplemented(u16),
+    UnknownOpcode(u16),
+    UndefinedHexadecimal(u16),
     StackOverflow,
     StackUnderflow,
     VregsOverflow,
     MemoryFull,
     WrongKey,
-    UndefinedHexadecimal(usize),
 }
 
 impl fmt::Display for Chip8Error {
@@ -107,8 +102,8 @@ pub struct Chip8 {
     mem: [u8; MEMSIZE],
     /// program counter
     pc: usize,
-    /// stack pointer
-    sp: usize,
+    /// stack pointer. Use a vectore instead of using space from mem.
+    sp: Vec<usize>,
     /// Data registers from V0 to VF
     vregs: [u8; VREGS_SIZE],
     /// 16-bit register for memory address
@@ -132,7 +127,7 @@ impl Chip8 {
         Chip8 {
             mem: [0; MEMSIZE],
             pc: ENTRY_POINT,
-            sp: STACK_OFFSET,
+            sp: vec![],
             vregs: [0; VREGS_SIZE],
             i: 0,
             delay_timer: 0,
@@ -205,9 +200,7 @@ impl Chip8 {
     /// Currently we are returning false for opcode that are not yet emulated
     /// but it is for testing.
     pub fn emulate_insn(&mut self) -> Result<(), Chip8Error> {
-        let opcode = opcode::Opcode::new(u16::from_be_bytes(
-            self.mem[self.pc..self.pc + OPCODE_SIZE].try_into().unwrap(),
-        ));
+        let opcode: u16 = ((self.mem[self.pc] as u16) << 8) | (self.mem[self.pc + 1] as u16);
 
         log::debug!("pc = {:#06x}, opcode = {}", self.pc, opcode);
 
@@ -222,179 +215,150 @@ impl Chip8 {
             self.sound_timer -= 1;
         }
 
-        match opcode.per_4bits() {
-            // clear screen
-            (0x0, 0x0, 0xE, 0x0) => {
-                self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
-                    .copy_from_slice(&[0; DISPLAY_SIZE]);
-            }
-            // return from subroutine
-            (0x0, 0x0, 0xE, 0xE) => {
-                if self.sp == STACK_OFFSET {
-                    return Err(Chip8Error::StackUnderflow);
+        match opcode & 0xF000 {
+            0x0000 => {
+                match opcode {
+                    // CLS: clear screen
+                    0x00E0 => {
+                        self.mem[DISPLAY_OFFSET..(DISPLAY_OFFSET + DISPLAY_SIZE)]
+                            .copy_from_slice(&[0; DISPLAY_SIZE]);
+                    }
+                    // RET: return from subroutine
+                    0x00EE => {
+                        self.pc = match self.sp.pop() {
+                            None => return Err(Chip8Error::StackUnderflow),
+                            Some(r) => r,
+                        };
+                    }
+                    // SYS Addr
+                    _ => {
+                        log::info!("{opcode} is ignored by modern interpreters");
+                    }
                 }
-
-                // Read PC from the top of the stack
-                let pc_hi = self.mem[self.sp] as usize;
-                let pc_low = self.mem[self.sp + 1] as usize;
-
-                self.pc = (pc_hi << 8) | pc_low;
-
-                // Decrement the stack pointer
-                self.sp -= 2;
             }
             // Jump to addr
-            (0x1, _, _, _) => self.pc = opcode.nnn() as usize,
+            0x1000 => self.pc = (opcode & 0xFFF) as usize,
             // Call addr
-            (0x2, _, _, _) => {
-                self.sp += 2; // Increment stack pointer
-                if self.sp >= STACK_OFFSET + STACK_SIZE {
-                    return Err(Chip8Error::StackOverflow);
-                }
-
-                // Save PC
-                let pc_hi: u8 = (self.pc >> 8) as u8;
-                let pc_low: u8 = self.pc as u8;
-
-                self.mem[self.sp] = pc_hi;
-                self.mem[self.sp + 1] = pc_low;
+            0x2000 => {
+                // Save the current PC
+                self.sp.push(self.pc);
 
                 // Set the new PC
-                self.pc = opcode.nnn() as usize;
+                self.pc = (opcode & 0xFFF) as usize;
             }
             // SE Vx, byte
-            (0x3, x, _, _) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+            0x3000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let kk = (opcode & 0xFF) as u8;
 
-                if self.vregs[x] == opcode.nn() {
+                // Skip next instruction if Vx == kk
+                if self.vregs[x] == kk {
                     self.pc += OPCODE_SIZE;
                 }
             }
             // SNE Vx, byte
-            (0x4, x, _, _) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+            0x4000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let kk = (opcode & 0xFF) as u8;
 
-                if self.vregs[x] != opcode.nn() {
+                // Skip next instruction if Vx == kk
+                if self.vregs[x] != kk {
                     self.pc += OPCODE_SIZE;
                 }
             }
             // SE Vx, Vy
-            (0x5, x, y, 0x0) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+            0x5000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let y = ((opcode & 0x00F0) >> 4) as usize;
 
+                // Skip next instruction if Vx == Vy
                 if self.vregs[x] == self.vregs[y] {
                     self.pc += OPCODE_SIZE;
                 }
             }
             // LD Vx, byte
-            (0x6, x, _, _) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                self.vregs[x] = opcode.nn();
+            0x6000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let kk = (opcode & 0xFF) as u8;
+
+                self.vregs[x] = kk;
             }
             // ADD Vx, byte
-            (0x7, x, _, _) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                //self.vregs[x] += opcode.nn();
-                self.vregs[x] = (self.vregs[x] as usize + opcode.nn() as usize) as u8;
-            }
-            // LD Vx, Vy
-            (0x8, x, y, 0x0) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                self.vregs[x] = self.vregs[y];
-            }
-            // OR Vx, Vy
-            (0x8, x, y, 0x1) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                self.vregs[x] |= self.vregs[y];
-            }
-            // AND Vx, Vy
-            (0x8, x, y, 0x2) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                self.vregs[x] &= self.vregs[y];
-            }
-            // XOR Vx, Vy
-            (0x8, x, y, 0x3) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                self.vregs[x] ^= self.vregs[y];
-            }
-            // ADD Vx, Vy
-            (0x8, x, y, 0x4) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                let sum = self.vregs[x] as usize + self.vregs[y] as usize;
-                self.vregs[0xF] = if sum > 255 { 1 } else { 0 };
-                self.vregs[x] = sum as u8;
-            }
-            // SUB Vx, Vy
-            (0x8, x, y, 0x5) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+            0x7000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let kk = (opcode & 0xFF) as usize;
 
-                self.vregs[0xF] = if self.vregs[x] > self.vregs[y] { 1 } else { 0 };
-                self.vregs[x] = (self.vregs[x] as isize - self.vregs[y] as isize) as u8;
+                // Use usize to avoid overflow
+                self.vregs[x] = (self.vregs[x] as usize + kk) as u8;
             }
-            // SHR Vx {, Vy}
-            (0x8, x, y, 0x6) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+            0x8000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let y = ((opcode & 0x00F0) >> 4) as usize;
+                match opcode & 0x000F {
+                    // LD Vx, Vy
+                    0x0 => {
+                        self.vregs[x] = self.vregs[y];
+                    }
+                    // OR Vx, Vy
+                    0x1 => {
+                        self.vregs[x] |= self.vregs[y];
+                    }
+                    // AND Vx, Vy
+                    0x2 => {
+                        self.vregs[x] &= self.vregs[y];
+                    }
+                    // XOR Vx, Vy
+                    0x3 => {
+                        self.vregs[x] ^= self.vregs[y];
+                    }
+                    // ADD Vx, Vy
+                    0x4 => {
+                        let sum = self.vregs[x] as usize + self.vregs[y] as usize;
 
-                self.vregs[0xF] = if self.vregs[x] & 0x1 == 0x1 { 1 } else { 0 };
-                self.vregs[x] /= 2;
-            }
-            // SUBN Vx, Vy
-            (0x8, x, y, 0x7) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
+                        self.vregs[0xF] = if sum > 255 { 1 } else { 0 };
+                        self.vregs[x] = sum as u8;
+                    }
+                    // SUB Vx, Vy
+                    0x5 => {
+                        self.vregs[0xF] = if self.vregs[x] > self.vregs[y] { 1 } else { 0 };
+                        self.vregs[x] = (self.vregs[x] as isize - self.vregs[y] as isize) as u8;
+                    }
+                    // SHR Vx {, Vy}
+                    0x6 => {
+                        self.vregs[0xF] = if self.vregs[x] & 0x1 == 0x1 { 1 } else { 0 };
+                        self.vregs[x] /= 2;
+                    }
+                    // SUBN Vx, Vy
+                    0x7 => {
+                        self.vregs[0xF] = if self.vregs[y] > self.vregs[x] { 1 } else { 0 };
+                        self.vregs[x] = self.vregs[y] - self.vregs[x];
+                    }
+                    // SHL Vx {, Vy}
+                    0xE => {
+                        self.vregs[0xF] = if self.vregs[x] & 0x80 == 0x80 { 1 } else { 0 };
+                        self.vregs[x] *= 2;
+                    }
+                    _ => return Err(Chip8Error::UnknownOpcode(opcode)),
                 }
-                self.vregs[0xF] = if self.vregs[y] > self.vregs[x] { 1 } else { 0 };
-                self.vregs[x] = self.vregs[y] - self.vregs[x];
-            }
-            // SHL Vx {, Vy}
-            (0x8, x, y, 0xE) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-                self.vregs[0xF] = if self.vregs[x] & 0x80 == 0x80 { 1 } else { 0 };
-                self.vregs[x] *= 2;
             }
             // SNE Vx, Vy
-            (0x9, x, y, 0x0) => {
-                if x >= VREGS_SIZE || y >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+            0x9000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let y = ((opcode & 0x00F0) >> 4) as usize;
 
+                // Skip next instruction if Vx != Vy
                 if self.vregs[x] != self.vregs[y] {
                     self.pc += OPCODE_SIZE;
                 }
             }
             // LD I, addr
-            (0xA, _, _, _) => self.i = opcode.nnn(),
+            0xA000 => self.i = opcode & 0xFFF,
+            // JP V0, addr
+            0xB000 => self.pc = (opcode & 0xFFF) as usize + self.vregs[0] as usize,
             // Vx = rand() & NN
-            (0xC, x, _, _) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+            0xC000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let kk = (opcode & 0xFF) as u8;
 
                 let rand = unsafe {
                     let mut r = 0_u16;
@@ -404,17 +368,18 @@ impl Chip8 {
 
                     r as u8
                 };
-                self.vregs[x] = rand & opcode.nn();
+                self.vregs[x] = rand & kk;
             }
             // DRAW Vx, Vy, nibble
-            (0xD, x, y, n) => {
+            0xD000 => {
                 // Draw a sprite 8xN at coordinate (VX, VY)
                 // VX and VY are in pixels
-                let mut vx = 0;
-                let mut vy = 0;
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                let y = ((opcode & 0x00F0) >> 4) as usize;
+                let n = (opcode & 0xF) as usize;
 
-                self.check_vregs(x, &mut vx)?;
-                self.check_vregs(y, &mut vy)?;
+                let vx = self.vregs[x] as usize;
+                let vy = self.vregs[y] as usize;
 
                 log::debug!("Draw a 8x{n} sprite at ({vx}, {vy})");
 
@@ -455,108 +420,83 @@ impl Chip8 {
                         .copy_from_slice(&fb_copy);
                 }
             }
-            // SKP Vx
-            (0xE, x, 0x9, 0xE) => {
-                let mut key = 0;
-                self.check_vregs(x, &mut key)?;
+            0xE000 => {
+                match opcode & 0xFF {
+                    // SKP Vx
+                    0x9E => {
+                        let x = ((opcode & 0x0F00) >> 8) as usize;
+                        let vx = self.vregs[x] as usize;
 
-                if key >= KEYBOARD_SIZE {
-                    return Err(Chip8Error::WrongKey);
-                }
+                        if self.keyboard[vx] {
+                            self.pc += OPCODE_SIZE;
+                        }
+                    }
+                    // SKNP Vx
+                    0xA1 => {
+                        let x = ((opcode & 0x0F00) >> 8) as usize;
+                        let vx = self.vregs[x] as usize;
 
-                if self.keyboard[key] {
-                    self.pc += OPCODE_SIZE;
-                }
-            }
-            // SKNP Vx
-            (0xE, x, 0xA, 0x1) => {
-                // skip next instruction if key is NOT pressed
-                let mut key = 0;
-                self.check_vregs(x, &mut key)?;
-
-                if key >= KEYBOARD_SIZE {
-                    return Err(Chip8Error::WrongKey);
-                }
-
-                if !self.keyboard[key] {
-                    self.pc += OPCODE_SIZE;
+                        if !self.keyboard[vx] {
+                            self.pc += OPCODE_SIZE;
+                        }
+                    }
+                    _ => return Err(Chip8Error::UnknownOpcode(opcode)),
                 }
             }
-            // LD Vx, DT
-            (0xF, x, 0x0, 0x7) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
+            0xF000 => {
+                let x = ((opcode & 0x0F00) >> 8) as usize;
+                match opcode & 0xFF {
+                    // LD Vx, DT
+                    0x07 => {
+                        self.vregs[x] = self.delay_timer as u8;
+                    }
+                    // LD DT, Vx
+                    0x15 => {
+                        let vx = self.vregs[x] as u16;
+                        self.delay_timer = vx;
+                    }
+                    // LD ST, Vx
+                    0x18 => {
+                        let vx = self.vregs[x] as u16;
+                        self.sound_timer = vx;
+                    }
+                    // ADD I, Vx
+                    0x1E => {
+                        self.i += self.vregs[x] as u16;
+                    }
+                    // LD F, Vx
+                    0x29 => {
+                        let vx = self.vregs[x] as u16;
+                        // There are 16 hexadecimal sprites from 0 to F.
+                        if vx >= 16_u16 {
+                            return Err(Chip8Error::UndefinedHexadecimal(vx));
+                        }
 
-                self.vregs[x] = self.delay_timer as u8;
-            }
-            // LD DT, Vx
-            (0xF, x, 0x1, 0x5) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-
-                let vx = self.vregs[x] as u16;
-                self.delay_timer = vx;
-            }
-            // LD ST, Vx
-            (0xF, x, 0x1, 0x8) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-
-                let vx = self.vregs[x] as u16;
-                self.sound_timer = vx;
-            }
-            // ADD I, Vx
-            (0xF, x, 0x1, 0xE) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-
-                self.i += self.vregs[x] as u16;
-            }
-            // LD F, Vx
-            (0xF, x, 0x2, 0x9) => {
-                // I is set to the location of the hexadecimal sprite corresponding to the
-                // value of Vx
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-
-                let vx = self.vregs[x] as u16;
-                // There are 16 hexadecimal sprites from 0 to F.
-                if vx >= 16_u16 {
-                    return Err(Chip8Error::UndefinedHexadecimal(vx as usize));
-                }
-
-                self.i = FONTS_OFFSET as u16 + FONTS_HEIGHT as u16 * vx;
-            }
-            // LD B, Vx
-            (0xF, x, 0x3, 0x3) => {
-                let vx = self.vregs[x];
-                let idx = self.i as usize;
-                self.mem[idx] = (vx / 100) % 10; // hundreds digit
-                self.mem[idx + 1] = (vx / 10) % 10; // tens digit
-                self.mem[idx + 2] = vx % 10; // ones digit
-            }
-            // LD [I], Vx
-            (0xF, x, 0x5, 0x5) => {
-                if x >= VREGS_SIZE {
-                    return Err(Chip8Error::VregsOverflow);
-                }
-
-                for i in 0..=x {
-                    self.mem[self.i as usize + i] = self.vregs[i];
-                }
-            }
-            // LD Vx, [I]
-            (0xF, _, 0x6, 0x5) => {
-                // Set V0 to Vx from memory starting at location i
-                // TODO: check the range of i ?
-
-                for x in 0..16 {
-                    self.vregs[x] = self.mem[self.i as usize + x];
+                        self.i = FONTS_OFFSET as u16 + FONTS_HEIGHT as u16 * vx;
+                    }
+                    // LD B, Vx
+                    0x33 => {
+                        let vx = self.vregs[x];
+                        let idx = self.i as usize;
+                        self.mem[idx] = (vx / 100) % 10; // hundreds digit
+                        self.mem[idx + 1] = (vx / 10) % 10; // tens digit
+                        self.mem[idx + 2] = vx % 10; // ones digit
+                    }
+                    // LD [I], Vx
+                    0x55 => {
+                        for i in 0..=x {
+                            self.mem[self.i as usize + i] = self.vregs[i];
+                        }
+                    }
+                    // LD Vx, [I]
+                    0x65 => {
+                        // Set V0 to Vx from memory starting at location i
+                        // TODO: check the range of i ?
+                        for x in 0..16 {
+                            self.vregs[x] = self.mem[self.i as usize + x];
+                        }
+                    }
+                    _ => return Err(Chip8Error::UnknownOpcode(opcode)),
                 }
             }
             _ => return Err(Chip8Error::NotImplemented(opcode)),
@@ -590,14 +530,5 @@ impl Chip8 {
             self.keyboard[key] = pressed;
             log::info!("{key} pressed");
         }
-    }
-
-    pub fn check_vregs(&self, src: usize, dst: &mut usize) -> Result<(), Chip8Error> {
-        if src >= VREGS_SIZE {
-            return Err(Chip8Error::VregsOverflow);
-        }
-
-        *dst = self.vregs[src] as usize;
-        Ok(())
     }
 }
