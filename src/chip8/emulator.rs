@@ -219,7 +219,7 @@ impl Chip8 {
         }
 
         if self.sound_timer > 0 {
-            self.delay_timer -= 1;
+            self.sound_timer -= 1;
         }
 
         match opcode.per_4bits() {
@@ -294,7 +294,8 @@ impl Chip8 {
                 if x >= VREGS_SIZE {
                     return Err(Chip8Error::VregsOverflow);
                 }
-                self.vregs[x] += opcode.nn();
+                //self.vregs[x] += opcode.nn();
+                self.vregs[x] = (self.vregs[x] as usize + opcode.nn() as usize) as u8;
             }
             // LD Vx, Vy
             (0x8, x, y, 0x0) => {
@@ -340,7 +341,7 @@ impl Chip8 {
                 }
 
                 self.vregs[0xF] = if self.vregs[x] > self.vregs[y] { 1 } else { 0 };
-                self.vregs[x] -= self.vregs[y];
+                self.vregs[x] = (self.vregs[x] as isize - self.vregs[y] as isize) as u8;
             }
             // SHR Vx {, Vy}
             (0x8, x, y, 0x6) => {
