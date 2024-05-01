@@ -1,8 +1,9 @@
 # Changelog
 
 ## 2024-05-01
+- Fix issue in Fx65
 - Implement all remaining instructions
-- Simplify opcode and use simple u16.
+- Simplify opcode and use simple u16
 
 ## 2024-04-27
 - Change license to be GPL 3.0

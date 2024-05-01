@@ -508,7 +508,7 @@ impl Chip8 {
                     // LD Vx, [I]
                     0x65 => {
                         // Set V0 to Vx from memory starting at location i
-                        for x in 0..16 {
+                        for x in 0..=x {
                             self.vregs[x] = self.mem[self.i as usize + x];
                         }
                     }

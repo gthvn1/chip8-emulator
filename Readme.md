@@ -13,8 +13,10 @@
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
 
 ## Todo
-- Pass [corax](https://github.com/Timendus/chip8-test-suite?tab=readme-ov-file#corax-opcode-test) test and play pong
-- Currently we are stuck at Fx55...
+
+- [x] pass corax test
+- [ ] play pong
+    - currently it doesn't work
 
 ## Links
 - [Awesome CHIP-8](https://chip-8.github.io/links/)
@@ -28,6 +30,9 @@
 ## Screenshots
 
 ### New ones with Raylib
+
+#### Corax + opcode test
+![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/corax.png)
 
 #### Timendus splash screen
 ![](https://github.com/gthvn1/chip8-emulator/blob/master/screenshots/timendus_raylib.png)
