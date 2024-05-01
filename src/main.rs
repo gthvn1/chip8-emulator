@@ -35,7 +35,7 @@ fn main() {
 
     init_window(screen_width, screen_height, "Chip8 emulator".to_string());
 
-    set_target_fps(60);
+    set_target_fps(360);
 
     while !window_should_close()
     // Detect window close button or ESC key
