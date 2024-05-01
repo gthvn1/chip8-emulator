@@ -547,17 +547,16 @@ impl Chip8 {
                 }
 
                 for i in 0..=x {
-                    self.vregs[i] = self.mem[self.i as usize + i];
+                    self.mem[self.i as usize + i] = self.vregs[i];
                 }
             }
             // LD Vx, [I]
             (0xF, _, 0x6, 0x5) => {
                 // Set V0 to Vx from memory starting at location i
                 // TODO: check the range of i ?
-                let idx = self.i as usize;
 
                 for x in 0..16 {
-                    self.vregs[x] = self.mem[idx + x];
+                    self.vregs[x] = self.mem[self.i as usize + x];
                 }
             }
             _ => return Err(Chip8Error::NotImplemented(opcode)),
