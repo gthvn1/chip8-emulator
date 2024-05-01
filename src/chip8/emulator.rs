@@ -269,7 +269,7 @@ impl Chip8 {
                 }
 
                 if self.vregs[x] == opcode.nn() {
-                    self.pc += 2;
+                    self.pc += OPCODE_SIZE;
                 }
             }
             // SNE Vx, byte
@@ -279,7 +279,7 @@ impl Chip8 {
                 }
 
                 if self.vregs[x] != opcode.nn() {
-                    self.pc += 2;
+                    self.pc += OPCODE_SIZE;
                 }
             }
             // SE Vx, Vy
@@ -289,7 +289,7 @@ impl Chip8 {
                 }
 
                 if self.vregs[x] == self.vregs[y] {
-                    self.pc += 2;
+                    self.pc += OPCODE_SIZE;
                 }
             }
             // LD Vx, byte
@@ -385,7 +385,7 @@ impl Chip8 {
                 }
 
                 if self.vregs[x] != self.vregs[y] {
-                    self.pc += 2;
+                    self.pc += OPCODE_SIZE;
                 }
             }
             // LD I, addr
@@ -465,7 +465,7 @@ impl Chip8 {
                 }
 
                 if self.keyboard[key] {
-                    self.pc += 2;
+                    self.pc += OPCODE_SIZE;
                 }
             }
             // SKNP Vx
@@ -479,7 +479,7 @@ impl Chip8 {
                 }
 
                 if !self.keyboard[key] {
-                    self.pc += 2;
+                    self.pc += OPCODE_SIZE;
                 }
             }
             // LD Vx, DT
