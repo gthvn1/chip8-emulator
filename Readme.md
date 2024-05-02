@@ -10,7 +10,7 @@
 - For more logs set `RUST_LOG=debug` (or info, ...)
 
 ## Notes
-- We are using [hw randr](https://doc.rust-lang.org/core/arch/x86/fn._rdrand16_step.html)
+- We are using [hw randr](https://doc.rust-lang.org/core/arch/x86/fn._rdrand16_step.html) to generate random number
     - So it only works on x86_64
 - [Changelog](https://github.com/gthvn1/chip8-emulator/blob/master/Changelog.md)
 
